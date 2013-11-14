@@ -1,9 +1,9 @@
 package containers
 
 import (
+	"atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
-	"atlantis/supervisor/rpc/types"
 	"log"
 	"os"
 )
@@ -46,7 +46,7 @@ type NumsResp struct {
 }
 
 var (
-	RegistryHost       string
+	RegistryHost      string
 	SaveDir           string
 	NumContainers     uint16 // for maximum efficiency, should = CPUShares
 	NumSecondaryPorts uint16

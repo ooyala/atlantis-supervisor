@@ -1,12 +1,12 @@
 package monitor
 
 import (
+	"atlantis/supervisor/rpc/types"
 	"bufio"
 	"encoding/gob"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
-	"atlantis/supervisor/rpc/types"
 	"os"
 	"os/exec"
 	"strings"

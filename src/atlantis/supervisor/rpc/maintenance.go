@@ -2,10 +2,10 @@ package rpc
 
 import (
 	. "atlantis/common"
-	"errors"
-	"fmt"
 	"atlantis/supervisor/containers"
 	. "atlantis/supervisor/rpc/types"
+	"errors"
+	"fmt"
 )
 
 type ContainerMaintenanceExecutor struct {

@@ -2,12 +2,12 @@ package client
 
 import (
 	. "atlantis/common"
+	. "atlantis/supervisor/constant"
+	. "atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
-	. "atlantis/supervisor/constant"
-	. "atlantis/supervisor/rpc/types"
 	"log"
 	"time"
 )

@@ -3,12 +3,12 @@ package server
 import (
 	. "atlantis/common"
 	"atlantis/crypto"
-	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/jigish/go-flags"
 	. "atlantis/supervisor/constant"
 	"atlantis/supervisor/containers"
 	"atlantis/supervisor/rpc"
+	"fmt"
+	"github.com/BurntSushi/toml"
+	"github.com/jigish/go-flags"
 	"log"
 	"os"
 	"os/signal"
@@ -40,7 +40,7 @@ type Opts struct {
 	MemoryLimit              uint   `long:"memory-limit" description:"the total MB of memory available"`
 	MinPort                  uint16 `long:"min-port" description:"the minimum port number to use"`
 	RpcAddr                  string `long:"rpc" description:"the RPC listen addr"`
-	RegistryHost              string `long:"registry" description:"the Registry Host to talk to"`
+	RegistryHost             string `long:"registry" description:"the Registry Host to talk to"`
 	ResultDuration           string `long:"result-duration" description:"How long to keep the results of an Async Command"`
 	Region                   string `long:"region" description:"the region this supervisor is in"`
 	Zone                     string `long:"zone" description:"the availability zone this supervisor is in"`

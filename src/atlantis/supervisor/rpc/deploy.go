@@ -2,10 +2,10 @@ package rpc
 
 import (
 	. "atlantis/common"
-	"errors"
-	"fmt"
 	"atlantis/supervisor/containers"
 	. "atlantis/supervisor/rpc/types"
+	"errors"
+	"fmt"
 )
 
 // Deploys an app+sha to the given container id using the given service dependencies (comes from arg.Manifest)

@@ -2,9 +2,9 @@ package containers
 
 import (
 	"atlantis/crypto"
+	"atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
-	"atlantis/supervisor/rpc/types"
 	"log"
 	"os"
 	"os/exec"
