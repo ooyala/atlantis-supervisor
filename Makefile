@@ -1,5 +1,5 @@
 PROJECT_ROOT := $(shell pwd)
-VENDOR_PATH  := $(PROJECT_ROOT)/vendor
+VENDOR_PATH  := $(VENDOR_PATH)
 LIB_PATH := $(PROJECT_ROOT)/lib
 ATLANTIS_PATH := $(LIB_PATH)/atlantis
 
@@ -15,14 +15,14 @@ clean:
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-install:
+install-deps:
 	@echo "Installing Dependencies..."
-	@rm -rf $(PROJECT_ROOT)/vendor
-	@mkdir -p $(PROJECT_ROOT)/vendor || exit 2
-	@GOPATH=$(PROJECT_ROOT)/vendor go get github.com/jigish/go-flags
-	@GOPATH=$(PROJECT_ROOT)/vendor go get github.com/BurntSushi/toml
+	@rm -rf $(LIB_PATH) $(VENDOR_PATH)
+	@mkdir -p $(VENDOR_PATH) || exit 2
+	@GOPATH=$(VENDOR_PATH) go get github.com/jigish/go-flags
+	@GOPATH=$(VENDOR_PATH) go get github.com/BurntSushi/toml
+	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gocheck
 	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
-	@GOPATH=$(PROJECT_ROOT)/vendor go get launchpad.net/gocheck
 	@echo "Done."
 
 test: clean copy-key
