@@ -10,6 +10,7 @@ all: test
 
 clean:
 	rm -rf bin pkg $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
+	rm -f example/supervisor example/client
 
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
@@ -36,6 +37,11 @@ else
 	@echo
 	@echo "ok."
 endif
+
+.PHONY: example
+example: copy-key
+	@go build -o example/supervisor example/supervisor.go
+	@go build -o example/client example/client.go
 
 fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
