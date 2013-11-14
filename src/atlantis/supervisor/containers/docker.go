@@ -153,7 +153,7 @@ func (c *Container) AuthorizeSSHUser(user, publicKey string) error {
 	// rebuild authorize_keys
 	return SSHCmd{"-p", fmt.Sprintf("%d", c.SSHPort), "-i", "/opt/atlantis/supervisor/master_id_rsa", "-o",
 		"UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no", "root@localhost",
-		fmt.Sprintf("echo \"%s\" >/root/.ssh/authorized_keys.d/%s.pub && oo_rebuild_authorized_keys", publicKey,
+		fmt.Sprintf("echo \"%s\" >/root/.ssh/authorized_keys.d/%s.pub && rebuild_authorized_keys", publicKey,
 			user)}.Execute()
 }
 
@@ -162,7 +162,7 @@ func (c *Container) DeauthorizeSSHUser(user string) error {
 	// rebuild authorize_keys
 	return SSHCmd{"-p", fmt.Sprintf("%d", c.SSHPort), "-i", "/opt/atlantis/supervisor/master_id_rsa", "-o",
 		"UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no", "root@localhost",
-		fmt.Sprintf("rm /root/.ssh/authorized_keys.d/%s.pub && oo_rebuild_authorized_keys",
+		fmt.Sprintf("rm /root/.ssh/authorized_keys.d/%s.pub && rebuild_authorized_keys",
 			user)}.Execute()
 }
 
