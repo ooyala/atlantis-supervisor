@@ -27,7 +27,7 @@ func (e *DeployExecutor) Description() string {
 		return fmt.Sprintf("%s @ %s in %s on %s -> %s with cpu ? and mem ?", e.arg.App, e.arg.Sha, e.arg.Env,
 			e.arg.Host, e.arg.ContainerId)
 	}
-	return fmt.Sprintf("%s @ %s in %s on %s -> %s with cpu %s and mem %s", e.arg.App, e.arg.Sha, e.arg.Env,
+	return fmt.Sprintf("%s @ %s in %s on %s -> %s with cpu %d and mem %d", e.arg.App, e.arg.Sha, e.arg.Env,
 		e.arg.Host, e.arg.ContainerId, e.arg.Manifest.CPUShares, e.arg.Manifest.MemoryLimit)
 }
 
