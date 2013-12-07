@@ -61,6 +61,29 @@ type Manifest struct {
 	Deps        map[string]string
 }
 
+func (m *Manifest) Dup() *Manifest {
+	runCommands := make([]string, len(m.RunCommands))
+	for i, cmd := range m.RunCommands {
+		runCommands[i] = cmd
+	}
+	deps := map[string]string{}
+	for key, val := range m.Deps {
+		deps[key] = val
+	}
+	return &Manifest {
+		Name: m.Name,
+		Description: m.Description,
+		Internal: m.Internal,
+		Instances: m.Instances,
+		CPUShares: m.CPUShares,
+		MemoryLimit: m.MemoryLimit,
+		Image: m.Image,
+		AppType: m.AppType,
+		RunCommands: runCommands,
+		Deps: deps,
+	}
+}
+
 func CreateManifest(mt *ManifestTOML) (*Manifest, error) {
 	deps := map[string]string{}
 	for _, name := range mt.DepNames {
