@@ -10,9 +10,11 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 var dockerIdRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
+var dockerLock = sync.Mutex{}
 
 type Container types.Container
 type DockerCmd []string
@@ -27,6 +29,7 @@ func NewDockerCmd(args ...string) DockerCmd {
 }
 
 func (d DockerCmd) Execute() (string, error) {
+	dockerLock.Lock()
 	if pretending() {
 		log.Printf("[pretend] docker %s", strings.Join(d, " "))
 		return "", nil
@@ -39,6 +42,7 @@ func (d DockerCmd) Execute() (string, error) {
 	if err != nil {
 		log.Println("-> Error:", err)
 	}
+	dockerLock.Unlock()
 	return string(output), err
 }
 
