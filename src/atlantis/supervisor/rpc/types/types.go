@@ -70,17 +70,17 @@ func (m *Manifest) Dup() *Manifest {
 	for key, val := range m.Deps {
 		deps[key] = val
 	}
-	return &Manifest {
-		Name: m.Name,
+	return &Manifest{
+		Name:        m.Name,
 		Description: m.Description,
-		Internal: m.Internal,
-		Instances: m.Instances,
-		CPUShares: m.CPUShares,
+		Internal:    m.Internal,
+		Instances:   m.Instances,
+		CPUShares:   m.CPUShares,
 		MemoryLimit: m.MemoryLimit,
-		Image: m.Image,
-		AppType: m.AppType,
+		Image:       m.Image,
+		AppType:     m.AppType,
 		RunCommands: runCommands,
-		Deps: deps,
+		Deps:        deps,
 	}
 }
 
