@@ -3,8 +3,9 @@ package containers
 import (
 	"atlantis/crypto"
 	"atlantis/supervisor/rpc/types"
-	"errors"
 	"fmt"
+	"github.com/dotcloud/docker"
+	dockercli "github.com/fsouza/go-dockerclient"
 	"log"
 	"os"
 	"os/exec"
@@ -13,37 +14,22 @@ import (
 	"sync"
 )
 
-var dockerIdRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
-var dockerLock = sync.Mutex{}
+var (
+	dockerIdRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
+	dockerLock     = sync.Mutex{}
+	dockerClient   *dockercli.Client
+)
 
 type Container types.Container
-type DockerCmd []string
 type SSHCmd []string
+
+func DockerInit() (err error) {
+	dockerClient, err = dockercli.NewClient("unix:///var/run/docker.sock")
+	return
+}
 
 func pretending() bool {
 	return os.Getenv("SUPERVISOR_PRETEND") != ""
-}
-
-func NewDockerCmd(args ...string) DockerCmd {
-	return append([]string{"docker"}, args...)
-}
-
-func (d DockerCmd) Execute() (string, error) {
-	dockerLock.Lock()
-	if pretending() {
-		log.Printf("[pretend] docker %s", strings.Join(d, " "))
-		return "", nil
-	}
-	// TODO[jigish] don't print dependencies because they may have passwords!
-	log.Printf("sudo %s", strings.Join(d, " "))
-	cmd := exec.Command("sudo", d...)
-	output, err := cmd.CombinedOutput()
-	log.Printf("-> %s", output)
-	if err != nil {
-		log.Println("-> Error:", err)
-	}
-	dockerLock.Unlock()
-	return string(output), err
 }
 
 func (s SSHCmd) Execute() error {
@@ -61,75 +47,144 @@ func (s SSHCmd) Execute() error {
 	return err
 }
 
+func RemoveExited() {
+	if pretending() {
+		return
+	}
+	dockerLock.Lock()
+	defer dockerLock.Unlock()
+	containers, err := dockerClient.ListContainers(dockercli.ListContainersOptions{All: true})
+	if err != nil {
+		log.Printf("[RemoveExited] could not list containers: %v", err)
+		return
+	}
+	for _, cont := range containers {
+		log.Printf("[RemoveExited] checking %s (%v) : %s", cont.ID, cont.Names, cont.Status)
+		if !strings.HasPrefix(cont.Status, "Exit") {
+			continue
+		}
+		log.Printf("[RemoveExited] remove %s (%v)", cont.ID, cont.Names)
+		err := dockerClient.RemoveContainer(cont.ID)
+		if err != nil {
+			log.Printf("[RemoveExited] -> error: %v", err)
+		} else {
+			log.Printf("[RemoveExited] -> success", err)
+		}
+	}
+}
+
+func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig) {
+	// get env cfg
+	envs := []string{
+		"ATLANTIS=true",
+		fmt.Sprintf("CONTAINER_ID=%s", c.Id),
+		fmt.Sprintf("CONTAINER_HOST=%s", c.Host),
+		fmt.Sprintf("CONTAINER_ENV=%s", c.Env),
+		fmt.Sprintf("HTTP_PORT=%d", c.PrimaryPort),
+		fmt.Sprintf("SSHD_PORT=%d", c.SSHPort),
+	}
+	if c.Manifest.Deps != nil {
+		for name, value := range c.Manifest.Deps {
+			envs = append(envs, fmt.Sprintf("%s=%s", name, crypto.Decrypt([]byte(value))))
+		}
+	}
+
+	// get port cfg
+	exposedPorts := map[docker.Port]struct{}{}
+	portBindings := map[docker.Port][]docker.PortBinding{}
+	sPrimaryPort := fmt.Sprintf("%d", c.PrimaryPort)
+	dPrimaryPort := docker.NewPort("tcp", sPrimaryPort)
+	exposedPorts[dPrimaryPort] = struct{}{}
+	portBindings[dPrimaryPort] = []docker.PortBinding{docker.PortBinding{
+		HostIp:   "",
+		HostPort: fmt.Sprintf("%d", sPrimaryPort),
+	}}
+	sSSHPort := fmt.Sprintf("%d", c.SSHPort)
+	dSSHPort := docker.NewPort("tcp", sSSHPort)
+	exposedPorts[dSSHPort] = struct{}{}
+	portBindings[dSSHPort] = []docker.PortBinding{docker.PortBinding{
+		HostIp:   "",
+		HostPort: sSSHPort,
+	}}
+	for i, port := range c.SecondaryPorts {
+		sPort := fmt.Sprintf("%d", port)
+		dPort := docker.NewPort("tcp", sPort)
+		exposedPorts[dPort] = struct{}{}
+		portBindings[dPort] = []docker.PortBinding{docker.PortBinding{
+			HostIp:   "",
+			HostPort: sPort,
+		}}
+		envs = append(envs, fmt.Sprintf("SECONDARY_PORT%d=%d", i, port))
+	}
+
+	// setup actual cfg
+	dCfg := &docker.Config{
+		CpuShares:    int64(c.Manifest.CPUShares),
+		Memory:       int64(c.Manifest.MemoryLimit) * int64(1024*1024), // this is in bytes
+		MemorySwap:   int64(-1),                                        // -1 turns swap off
+		ExposedPorts: exposedPorts,
+		Env:          envs,
+		Cmd:          []string{}, // images already specify run command
+		Image:        fmt.Sprintf("%s/%s", RegistryHost, repo),
+		Volumes: map[string]struct{}{
+			fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id): struct{}{},
+		},
+	}
+	dHostCfg := &docker.HostConfig{
+		PortBindings: portBindings,
+		LxcConf:      []docker.KeyValuePair{},
+	}
+	return dCfg, dHostCfg
+}
+
 // Deploy the given app+sha with the dependencies defined in deps. This will spin up a new docker container.
 func (c *Container) Deploy(host, app, sha, env string) error {
 	c.Host = host
 	c.App = app
 	c.Sha = sha
 	c.Env = env
-	dockerName := fmt.Sprintf("%s/apps/%s-%s", RegistryHost, c.App, c.Sha)
+	dRepo := fmt.Sprintf("apps/%s-%s", c.App, c.Sha)
 	if pretending() {
-		log.Printf("[pretend] deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
 	} else {
-		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
 	}
 	// Pull docker container
-	pullCmd := NewDockerCmd("pull", dockerName)
-	_, err := pullCmd.Execute()
-	if err != nil {
-		return err
-	}
+	if pretending() {
+		log.Printf("[pretend] deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
+		log.Printf("[pretend] docker pull %s/%s", RegistryHost, dRepo)
+		log.Printf("[pretend] docker run %s/%s", RegistryHost, dRepo)
+		c.DockerId = fmt.Sprintf("pretend-docker-id-%d", c.PrimaryPort)
+	} else {
+		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
+		dockerLock.Lock()
+		err := dockerClient.PullImage(dockercli.PullImageOptions{Repository: dRepo, Registry: RegistryHost},
+			os.Stdout)
+		dockerLock.Unlock()
+		if err != nil {
+			return err
+		}
 
-	if !pretending() {
 		err = os.MkdirAll(fmt.Sprintf("/var/log/atlantis/containers/%s", c.Id), 0755)
 		if err != nil {
 			return err
 		}
-	}
 
-	// Run docker container
-	runCmd := NewDockerCmd("run", "-d",
-		"-name", c.Id,
-		"-c", fmt.Sprintf("%d", c.Manifest.CPUShares),
-		"-m", fmt.Sprintf("%d", uint64(c.Manifest.MemoryLimit)*uint64(1024*1024)),
-		"-v", fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id),
-		"-e", "ATLANTIS=true",
-		"-e", fmt.Sprintf("CONTAINER_ID=%s", c.Id),
-		"-e", fmt.Sprintf("CONTAINER_HOST=%s", c.Host),
-		"-e", fmt.Sprintf("CONTAINER_ENV=%s", c.Env),
-		"-e", fmt.Sprintf("HTTP_PORT=%d", c.PrimaryPort),
-		"-e", fmt.Sprintf("SSHD_PORT=%d", c.SSHPort),
-		"-p", fmt.Sprintf("%d:%d", c.PrimaryPort, c.PrimaryPort),
-		"-p", fmt.Sprintf("%d:%d", c.SSHPort, c.SSHPort))
-	for i, port := range c.SecondaryPorts {
-		runCmd = append(runCmd, "-e", fmt.Sprintf("SECONDARY_PORT%d=%d", i, port), "-p",
-			fmt.Sprintf("%d:%d", port, port))
-	}
-	if c.Manifest.Deps != nil {
-		for name, value := range c.Manifest.Deps {
-			runCmd = append(runCmd, "-e", fmt.Sprintf("%s=%s", name, crypto.Decrypt([]byte(value))))
+		// create docker container
+		dCfg, dHostCfg := c.dockerCfgs(dRepo)
+		dockerLock.Lock()
+		dCont, err := dockerClient.CreateContainer(dockercli.CreateContainerOptions{Name: c.Id}, dCfg)
+		dockerLock.Unlock()
+		if err != nil {
+			return err
 		}
-	}
-	runCmd = append(runCmd, dockerName)
-	dockerId, err := runCmd.Execute()
-	if err != nil {
-		return err
-	}
-	// Sometimes docker outputs warnings as well. Kill them here.
-	dockerId = strings.TrimSpace(dockerId)
-	if idx := strings.LastIndex(dockerId, "\n"); idx >= 0 {
-		dockerId = strings.TrimSpace(dockerId[idx:])
-	}
-	// Set DockerId
-	if pretending() {
-		c.DockerId = fmt.Sprintf("pretend-docker-id-%d", c.PrimaryPort)
-	} else {
-		// TODO[jigish] - docker doesn't return proper exit codes yet. make sure the run succeeded here
-		if !dockerIdRegexp.MatchString(dockerId) {
-			// if docker id is in the wrong format, probably means docker run failed. return an error
-			return errors.New("Failed to deploy. Expected [A-Za-z0-9]+ docker id, got '" + dockerId + "'.")
+		c.DockerId = dCont.ID
+
+		// start docker container
+		dockerLock.Lock()
+		err = dockerClient.StartContainer(c.DockerId, dHostCfg)
+		dockerLock.Unlock()
+		if err != nil {
+			return err
 		}
-		c.DockerId = dockerId
 	}
 	save() // save here because this is when we know the deployed container is actually alive
 	return nil
@@ -139,11 +194,17 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 func (c *Container) teardown() {
 	if pretending() {
 		log.Printf("[pretend] teardown %s...", c.Id)
+		return
 	} else {
 		log.Printf("teardown %s...", c.Id)
 	}
-	killCmd := NewDockerCmd("kill", c.Id)
-	killCmd.Execute()
+	defer RemoveExited()
+	dockerLock.Lock()
+	err := dockerClient.KillContainer(c.DockerId)
+	dockerLock.Unlock()
+	if err != nil {
+		log.Printf("failed to teardown %s: %v", c.Id, err)
+	}
 }
 
 // This calls the Teardown(id string) method to ensure that the ports/containers are freed. That will in turn

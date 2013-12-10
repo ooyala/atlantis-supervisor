@@ -95,6 +95,7 @@ func (ih *Supervisor) Run() {
 	}
 	go signalListener()
 	MaintenanceChecker(config.MaintenanceFile, maintenanceCheckInterval)
+	go containers.RemoveExited()
 	rpc.Listen()
 }
 

@@ -1,6 +1,11 @@
 PROJECT_ROOT := $(shell pwd)
-VENDOR_PATH  := $(VENDOR_PATH)
-LIB_PATH := $(PROJECT_ROOT)/lib
+ifeq ($(shell pwd | xargs dirname | xargs basename),"lib")
+	LIB_PATH := $(PROJECT_ROOT)/lib
+	VENDOR_PATH := $(PROJECT_ROOT)/vendor
+else
+	LIB_PATH := $(shell pwd | xargs dirname)
+	VENDOR_PATH := $(shell pwd | xargs dirname | xargs dirname)/vendor
+endif
 ATLANTIS_PATH := $(LIB_PATH)/atlantis
 
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH):$(ATLANTIS_PATH)

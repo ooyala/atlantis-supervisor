@@ -91,6 +91,10 @@ func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort ui
 	listChan = make(chan chan *ListResp)
 	numsChan = make(chan chan *NumsResp)
 	dieChan = make(chan bool)
+	err = DockerInit()
+	if err != nil {
+		return err
+	}
 	go containerManager()
 	return nil
 }
