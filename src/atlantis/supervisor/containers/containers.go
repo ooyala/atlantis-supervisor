@@ -96,6 +96,8 @@ func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort ui
 		return err
 	}
 	go containerManager()
+	go removeExited()
+	go restartGhost()
 	return nil
 }
 

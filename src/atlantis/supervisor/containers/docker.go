@@ -47,7 +47,7 @@ func (s SSHCmd) Execute() error {
 	return err
 }
 
-func RemoveExited() {
+func removeExited() {
 	if pretending() {
 		return
 	}
@@ -69,6 +69,32 @@ func RemoveExited() {
 			log.Printf("[RemoveExited] -> error: %v", err)
 		} else {
 			log.Printf("[RemoveExited] -> success", err)
+		}
+	}
+}
+
+func restartGhost() {
+	if pretending() {
+		return
+	}
+	dockerLock.Lock()
+	defer dockerLock.Unlock()
+	containers, err := dockerClient.ListContainers(dockercli.ListContainersOptions{All: true})
+	if err != nil {
+		log.Printf("[RestartGhost] could not list containers: %v", err)
+		return
+	}
+	for _, cont := range containers {
+		log.Printf("[RestartGhost] checking %s (%v) : %s", cont.ID, cont.Names, cont.Status)
+		if !strings.HasPrefix(cont.Status, "Ghost") {
+			continue
+		}
+		log.Printf("[RestartGhost] restart %s (%v)", cont.ID, cont.Names)
+		err := dockerClient.RestartContainer(cont.ID, 0)
+		if err != nil {
+			log.Printf("[RestartGhost] -> error: %v", err)
+		} else {
+			log.Printf("[RestartGhost] -> success", err)
 		}
 	}
 }
@@ -198,7 +224,7 @@ func (c *Container) teardown() {
 	} else {
 		log.Printf("teardown %s...", c.Id)
 	}
-	defer RemoveExited()
+	defer removeExited()
 	dockerLock.Lock()
 	err := dockerClient.KillContainer(c.DockerId)
 	dockerLock.Unlock()
