@@ -83,7 +83,6 @@ func restartGhost() {
 		log.Printf("[RestartGhost] could not list containers: %v", err)
 		return
 	}
-	hadError := false
 	for _, cont := range containers {
 		log.Printf("[RestartGhost] checking %s (%v) : %s", cont.ID, cont.Names, cont.Status)
 		if !strings.HasPrefix(cont.Status, "Ghost") {
@@ -92,19 +91,9 @@ func restartGhost() {
 		log.Printf("[RestartGhost] restart %s (%v)", cont.ID, cont.Names)
 		err := dockerClient.RestartContainer(cont.ID, 0)
 		if err != nil {
-			hadError = true
 			log.Printf("[RestartGhost] -> error: %v", err)
 		} else {
 			log.Printf("[RestartGhost] -> success")
-		}
-	}
-	if hadError {
-		log.Printf("[RestartGhost] attempting to force restart (restarting docker daemon)")
-		cmd := exec.Command("sudo", "service docker restart")
-		output, err := cmd.CombinedOutput()
-		log.Printf("-> %s", output)
-		if err != nil {
-			log.Println("-> Error:", err)
 		}
 	}
 }
