@@ -162,13 +162,12 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 		Env:          envs,
 		Cmd:          []string{}, // images already specify run command
 		Image:        fmt.Sprintf("%s/%s", RegistryHost, repo),
-		Volumes: map[string]struct{}{
-			fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id): struct{}{},
-		},
+		Volumes:      map[string]struct{}{"/var/log/atlantis/syslog": struct{}{}},
 	}
 	dHostCfg := &docker.HostConfig{
 		PortBindings: portBindings,
 		LxcConf:      []docker.KeyValuePair{},
+		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id)},
 	}
 	return dCfg, dHostCfg
 }
