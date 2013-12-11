@@ -67,7 +67,7 @@ func removeExited() {
 		if err != nil {
 			log.Printf("[RemoveExited] -> error: %v", err)
 		} else {
-			log.Printf("[RemoveExited] -> success", err)
+			log.Printf("[RemoveExited] -> success")
 		}
 	}
 }
@@ -93,7 +93,7 @@ func restartGhost() {
 		if err != nil {
 			log.Printf("[RestartGhost] -> error: %v", err)
 		} else {
-			log.Printf("[RestartGhost] -> success", err)
+			log.Printf("[RestartGhost] -> success")
 		}
 	}
 }
