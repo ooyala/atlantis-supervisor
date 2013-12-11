@@ -133,7 +133,7 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 	exposedPorts[dPrimaryPort] = struct{}{}
 	portBindings[dPrimaryPort] = []docker.PortBinding{docker.PortBinding{
 		HostIp:   "",
-		HostPort: fmt.Sprintf("%d", sPrimaryPort),
+		HostPort: sPrimaryPort,
 	}}
 	sSSHPort := fmt.Sprintf("%d", c.SSHPort)
 	dSSHPort := docker.NewPort("tcp", sSSHPort)
