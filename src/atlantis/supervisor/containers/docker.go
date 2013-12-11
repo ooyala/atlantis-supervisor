@@ -4,8 +4,7 @@ import (
 	"atlantis/crypto"
 	"atlantis/supervisor/rpc/types"
 	"fmt"
-	"github.com/dotcloud/docker"
-	dockercli "github.com/fsouza/go-dockerclient"
+	"github.com/jigish/go-dockerclient"
 	"log"
 	"os"
 	"os/exec"
@@ -17,14 +16,14 @@ import (
 var (
 	dockerIdRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
 	dockerLock     = sync.Mutex{}
-	dockerClient   *dockercli.Client
+	dockerClient   *docker.Client
 )
 
 type Container types.Container
 type SSHCmd []string
 
 func DockerInit() (err error) {
-	dockerClient, err = dockercli.NewClient("unix:///var/run/docker.sock")
+	dockerClient, err = docker.NewClient("unix:///var/run/docker.sock")
 	return
 }
 
@@ -53,7 +52,7 @@ func removeExited() {
 	}
 	dockerLock.Lock()
 	defer dockerLock.Unlock()
-	containers, err := dockerClient.ListContainers(dockercli.ListContainersOptions{All: true})
+	containers, err := dockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		log.Printf("[RemoveExited] could not list containers: %v", err)
 		return
@@ -79,7 +78,7 @@ func restartGhost() {
 	}
 	dockerLock.Lock()
 	defer dockerLock.Unlock()
-	containers, err := dockerClient.ListContainers(dockercli.ListContainersOptions{All: true})
+	containers, err := dockerClient.ListContainers(docker.ListContainersOptions{All: true})
 	if err != nil {
 		log.Printf("[RestartGhost] could not list containers: %v", err)
 		return
@@ -182,7 +181,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 	} else {
 		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
 		dockerLock.Lock()
-		err := dockerClient.PullImage(dockercli.PullImageOptions{Repository: dRepo, Registry: RegistryHost},
+		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo, Registry: RegistryHost},
 			os.Stdout)
 		dockerLock.Unlock()
 		if err != nil {
@@ -197,7 +196,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 		// create docker container
 		dCfg, dHostCfg := c.dockerCfgs(dRepo)
 		dockerLock.Lock()
-		dCont, err := dockerClient.CreateContainer(dockercli.CreateContainerOptions{Name: c.Id}, dCfg)
+		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.Id}, dCfg)
 		dockerLock.Unlock()
 		if err != nil {
 			return err
