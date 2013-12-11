@@ -191,8 +191,9 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 		c.DockerId = fmt.Sprintf("pretend-docker-id-%d", c.PrimaryPort)
 	} else {
 		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
+		log.Printf("docker pull http://%s/%s", RegistryHost, dRepo)
 		dockerLock.Lock()
-		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo, Registry: RegistryHost},
+		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo, Registry: "http://"+RegistryHost},
 			os.Stdout)
 		dockerLock.Unlock()
 		if err != nil {
@@ -204,6 +205,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 			return err
 		}
 
+		log.Printf("docker run http://%s/%s", RegistryHost, dRepo)
 		// create docker container
 		dCfg, dHostCfg := c.dockerCfgs(dRepo)
 		dockerLock.Lock()
