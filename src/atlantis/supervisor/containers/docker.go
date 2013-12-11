@@ -193,7 +193,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
 		log.Printf("docker pull http://%s/%s", RegistryHost, dRepo)
 		dockerLock.Lock()
-		err := dockerClient.PullImage(docker.PullImageOptions{Repository: fmt.Sprintf("%s/%s", RegistryHost, repo)},
+		err := dockerClient.PullImage(docker.PullImageOptions{Repository: fmt.Sprintf("%s/%s", RegistryHost, dRepo)},
 			os.Stdout)
 		dockerLock.Unlock()
 		if err != nil {
