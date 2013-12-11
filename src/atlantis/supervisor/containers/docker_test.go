@@ -27,4 +27,10 @@ func (s *DockerSuite) TestDeploy(c *gocheck.C) {
 	os.RemoveAll(saveDir)
 }
 
+func (s *DockerSuite) TestRandomId(c *gocheck.C) {
+	cont := &Container{Manifest: &types.Manifest{}}
+	cont.Id = "hello-go-123456-jigish-JdAf89"
+	c.Assert(cont.RandomId(), gocheck.Equals, "JdAf89")
+}
+
 // no testing for teardown because pretend teardown does nothing.

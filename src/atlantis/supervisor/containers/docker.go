@@ -155,10 +155,20 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 	}
 	dHostCfg := &docker.HostConfig{
 		PortBindings: portBindings,
-		LxcConf:      []docker.KeyValuePair{},
 		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id)},
+		// call veth something we can actually look up later:
+		LxcConf:      []docker.KeyValuePair{
+			docker.KeyValuePair{
+				Key: "lxc.network.veth.pair",
+				Value: "veth"+c.RandomId(),
+			},
+		},
 	}
 	return dCfg, dHostCfg
+}
+
+func (c *Container) RandomId() string {
+	return c.Id[strings.LastIndex(c.Id, "-")+1:]
 }
 
 // Deploy the given app+sha with the dependencies defined in deps. This will spin up a new docker container.
