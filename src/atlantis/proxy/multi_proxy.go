@@ -127,7 +127,7 @@ func (p *MultiProxy) AddProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	p.save()
 	log.Println("[CONFIG] added %s -> %s", local, remote)
-	fmt.Fprintf(w, "added %s -> %s", local, remote)
+	fmt.Fprintf(w, "added %s -> %s\n", local, remote)
 }
 
 func (p *MultiProxy) RemoveProxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +144,7 @@ func (p *MultiProxy) RemoveProxyHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	p.save()
 	log.Println("[CONFIG] removed %s", local)
-	fmt.Fprintf(w, "removed %s", local)
+	fmt.Fprintf(w, "removed %s\n", local)
 }
 
 func (p *MultiProxy) GetConfigHandler(w http.ResponseWriter, r *http.Request) {
