@@ -10,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -43,7 +42,7 @@ type MultiProxy struct {
 	ConfigAddr         string
 	DefaultNumHandlers int
 	DefaultMaxPending  int
-	ProxyMap           map[string]*Proxy // local address -> proxy
+	ProxyMap           map[string]Proxy // local address -> proxy
 }
 
 func NewMultiProxy(saveFile, cAddr string, numHandlers, maxPending int) *MultiProxy {
@@ -53,7 +52,7 @@ func NewMultiProxy(saveFile, cAddr string, numHandlers, maxPending int) *MultiPr
 		ConfigAddr:         cAddr,
 		DefaultNumHandlers: numHandlers,
 		DefaultMaxPending:  maxPending,
-		ProxyMap:           map[string]*Proxy{},
+		ProxyMap:           map[string]Proxy{},
 	}
 }
 
@@ -61,7 +60,7 @@ func (p *MultiProxy) AddProxy(cfg *ProxyConfig) error {
 	p.Lock()
 	defer p.Unlock()
 	if proxy, ok := p.ProxyMap[cfg.LocalAddr]; ok && proxy != nil {
-		return NewAlreadyProxyingError(cfg.LocalAddr, proxy.RemoteAddrString)
+		return NewAlreadyProxyingError(cfg.LocalAddr, proxy.RemoteAddr())
 	}
 	return p.add(cfg)
 }
@@ -88,7 +87,7 @@ func (p *MultiProxy) Listen() error {
 	gmux.HandleFunc("/config", p.PatchConfigHandler).Methods("PATCH")
 
 	server := &http.Server{Addr: p.ConfigAddr, Handler: apachelog.NewHandler(gmux, os.Stderr)}
-	log.Println("[CONFIG] listening on " + p.ConfigAddr)
+	log.Printf("[CONFIG] listening on %s", p.ConfigAddr)
 	log.Fatal(server.ListenAndServe())
 	return nil
 }
@@ -97,20 +96,16 @@ func (p *MultiProxy) AddProxyHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	local := sanitizeAddr(vars["local"])
 	remote := sanitizeAddr(vars["remote"])
-	var body map[string]string
+	var cfg ProxyConfig
 	dec := json.NewDecoder(r.Body)
-	err := dec.Decode(&body)
+	err := dec.Decode(&cfg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	numHandlers, _ := strconv.Atoi(body["NumHandlers"])
-	maxPending, _ := strconv.Atoi(body["MaxPending"])
-	err = p.AddProxy(&ProxyConfig{LocalAddr: local,
-		RemoteAddr: remote,
-		NumHandlers: numHandlers,
-		MaxPending: maxPending,
-	})
+	cfg.LocalAddr = local
+	cfg.RemoteAddr = remote
+	err = p.AddProxy(&cfg)
 	if err != nil {
 		switch err.(type) {
 		case *MultiProxyError:
@@ -121,7 +116,7 @@ func (p *MultiProxy) AddProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.save()
-	log.Println("[CONFIG] added %s -> %s", local, remote)
+	log.Printf("[CONFIG] added %s -> %s", local, remote)
 	fmt.Fprintf(w, "added %s -> %s\n", local, remote)
 }
 
@@ -138,7 +133,7 @@ func (p *MultiProxy) RemoveProxyHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	p.save()
-	log.Println("[CONFIG] removed %s", local)
+	log.Printf("[CONFIG] removed %s", local)
 	fmt.Fprintf(w, "removed %s\n", local)
 }
 
@@ -160,8 +155,8 @@ func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	// add the stuff we need to
 	for lAddr, cfg := range body {
-		if pxy := p.ProxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddrString &&
-				cfg.RemoteAddr == pxy.RemoteAddrString {
+		if pxy := p.ProxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddr() &&
+				cfg.RemoteAddr == pxy.RemoteAddr() {
 			continue // same thing
 		} else if pxy != nil {
 			// not the same thing, kill the proxy then restart it.
@@ -188,14 +183,9 @@ func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) 
 	p.Unlock()
 }
 
-func (p *MultiProxy) remove(pxy *Proxy) {
-	pxy.die = true
-	// fake request to trigger die
-	if resp, err := http.Get("http://" + pxy.LocalAddrString); err == nil {
-		resp.Body.Close()
-	}
-	<-pxy.dead
-	delete(p.ProxyMap, pxy.LocalAddrString)
+func (p *MultiProxy) remove(pxy Proxy) {
+	pxy.Die()
+	delete(p.ProxyMap, pxy.LocalAddr())
 }
 
 func (p *MultiProxy) add(cfg *ProxyConfig) error {
@@ -205,8 +195,8 @@ func (p *MultiProxy) add(cfg *ProxyConfig) error {
 	if cfg.MaxPending <= 0 {
 		cfg.MaxPending = p.DefaultMaxPending
 	}
-	proxy, err := NewProxyWithConfig(cfg)
-	if err != nil {
+	proxy := NewProxyWithConfig(cfg)
+	if err := proxy.Init(); err != nil {
 		return err
 	}
 	p.ProxyMap[cfg.LocalAddr] = proxy
@@ -247,6 +237,9 @@ func (p *MultiProxy) load() {
 	d := gob.NewDecoder(r)
 	d.Decode(p)
 	for _, proxy := range p.ProxyMap {
+		if err := proxy.Init(); err != nil {
+			panic(err)
+		}
 		proxy.Listen()
 	}
 	p.Unlock()
