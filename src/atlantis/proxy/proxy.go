@@ -6,6 +6,13 @@ import (
 	"net"
 )
 
+type ProxyConfig struct {
+	NumHandlers      int
+	MaxPending       int
+	LocalAddr        string
+	RemoteAddr       string
+}
+
 type Proxy struct {
 	NumHandlers      int
 	MaxPending       int
@@ -15,6 +22,10 @@ type Proxy struct {
 	RemoteAddr       *net.TCPAddr `json:"-"`
 	dead             chan bool
 	die              bool
+}
+
+func NewProxyWithConfig(c *ProxyConfig) (*Proxy, error) {
+	return NewProxy(c.LocalAddr, c.RemoteAddr, c.NumHandlers, c.MaxPending)
 }
 
 func NewProxy(lAddr, rAddr string, numHandlers, maxPending int) (*Proxy, error) {
