@@ -157,10 +157,10 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 		PortBindings: portBindings,
 		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id)},
 		// call veth something we can actually look up later:
-		LxcConf:      []docker.KeyValuePair{
+		LxcConf: []docker.KeyValuePair{
 			docker.KeyValuePair{
-				Key: "lxc.network.veth.pair",
-				Value: "veth"+c.RandomId(),
+				Key:   "lxc.network.veth.pair",
+				Value: "veth" + c.RandomId(),
 			},
 		},
 	}
