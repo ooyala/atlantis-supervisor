@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"bufio"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/cespare/go-apachelog"
@@ -42,7 +41,8 @@ type MultiProxy struct {
 	ConfigAddr         string
 	DefaultNumHandlers int
 	DefaultMaxPending  int
-	ProxyMap           map[string]Proxy // local address -> proxy
+	ProxyConfigs       map[string]*ProxyConfig
+	proxyMap           map[string]Proxy // local address -> proxy
 }
 
 func NewMultiProxy(saveFile, cAddr string, numHandlers, maxPending int) *MultiProxy {
@@ -52,14 +52,15 @@ func NewMultiProxy(saveFile, cAddr string, numHandlers, maxPending int) *MultiPr
 		ConfigAddr:         cAddr,
 		DefaultNumHandlers: numHandlers,
 		DefaultMaxPending:  maxPending,
-		ProxyMap:           map[string]Proxy{},
+		ProxyConfigs:       map[string]*ProxyConfig{},
+		proxyMap:           map[string]Proxy{},
 	}
 }
 
 func (p *MultiProxy) AddProxy(cfg *ProxyConfig) error {
 	p.Lock()
 	defer p.Unlock()
-	if proxy, ok := p.ProxyMap[cfg.LocalAddr]; ok && proxy != nil {
+	if proxy, ok := p.proxyMap[cfg.LocalAddr]; ok && proxy != nil {
 		return NewAlreadyProxyingError(cfg.LocalAddr, proxy.RemoteAddr())
 	}
 	return p.add(cfg)
@@ -68,7 +69,7 @@ func (p *MultiProxy) AddProxy(cfg *ProxyConfig) error {
 func (p *MultiProxy) RemoveProxy(localAddr string) error {
 	p.Lock()
 	defer p.Unlock()
-	if proxy, ok := p.ProxyMap[localAddr]; !ok || proxy == nil {
+	if proxy, ok := p.proxyMap[localAddr]; !ok || proxy == nil {
 		return NewNotProxyingError(localAddr)
 	} else {
 		p.remove(proxy)
@@ -78,6 +79,11 @@ func (p *MultiProxy) RemoveProxy(localAddr string) error {
 
 func (p *MultiProxy) Listen() error {
 	p.load()
+	log.Printf("[CONFIG] MultiProxy Initializing")
+	log.Printf("[CONFIG]   - SaveFile:           %s", p.SaveFile)
+	log.Printf("[CONFIG]   - ConfigAddr:         %s", p.ConfigAddr)
+	log.Printf("[CONFIG]   - DefaultNumHandlers: %d", p.DefaultNumHandlers)
+	log.Printf("[CONFIG]   - DefaultMaxPending:  %d", p.DefaultMaxPending)
 	// listen for config changes
 	gmux := mux.NewRouter() // Use gorilla mux for APIs to make things easier
 	gmux.HandleFunc("/proxy/{local}/{remote}", p.AddProxyHandler).Methods("PUT")
@@ -140,12 +146,13 @@ func (p *MultiProxy) RemoveProxyHandler(w http.ResponseWriter, r *http.Request) 
 func (p *MultiProxy) GetConfigHandler(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(w)
 	p.Lock()
-	enc.Encode(p.ProxyMap)
-	p.Unlock()
+	defer p.Unlock()
+	enc.Encode(p.ProxyConfigs)
 }
 
 func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) {
 	p.Lock()
+	defer p.Unlock()
 	var body map[string]*ProxyConfig
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&body)
@@ -155,7 +162,7 @@ func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	// add the stuff we need to
 	for lAddr, cfg := range body {
-		if pxy := p.ProxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddr() &&
+		if pxy := p.proxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddr() &&
 			cfg.RemoteAddr == pxy.RemoteAddr() {
 			continue // same thing
 		} else if pxy != nil {
@@ -173,19 +180,19 @@ func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	// remove the stuff we need to
-	for lAddr, pxy := range p.ProxyMap {
+	for lAddr, pxy := range p.proxyMap {
 		if cfg := body[lAddr]; cfg != nil {
 			continue // should be the same thing now
 		} else { // cfg == nil, we need to delete
 			p.remove(pxy)
 		}
 	}
-	p.Unlock()
 }
 
 func (p *MultiProxy) remove(pxy Proxy) {
 	pxy.Die()
-	delete(p.ProxyMap, pxy.LocalAddr())
+	delete(p.proxyMap, pxy.LocalAddr())
+	delete(p.ProxyConfigs, pxy.LocalAddr())
 }
 
 func (p *MultiProxy) add(cfg *ProxyConfig) error {
@@ -199,7 +206,8 @@ func (p *MultiProxy) add(cfg *ProxyConfig) error {
 	if err := proxy.Init(); err != nil {
 		return err
 	}
-	p.ProxyMap[cfg.LocalAddr] = proxy
+	p.proxyMap[cfg.LocalAddr] = proxy
+	p.ProxyConfigs[cfg.LocalAddr] = cfg
 	go proxy.Listen()
 	return nil
 }
@@ -213,7 +221,7 @@ func sanitizeAddr(addr string) string {
 
 func (p *MultiProxy) save() {
 	p.Lock()
-	gob.Register(p)
+	defer p.Unlock()
 	fo, err := os.Create(p.SaveFile)
 	if err != nil {
 		log.Printf("[CONFIG] could not save %s: %s", p.SaveFile, err)
@@ -221,26 +229,25 @@ func (p *MultiProxy) save() {
 	}
 	defer fo.Close()
 	w := bufio.NewWriter(fo)
-	e := gob.NewEncoder(w)
+	e := json.NewEncoder(w)
 	e.Encode(p)
 	w.Flush()
-	p.Unlock()
 }
 
 func (p *MultiProxy) load() {
 	p.Lock()
+	defer p.Unlock()
 	fi, err := os.Open(p.SaveFile)
 	if err != nil {
 		log.Printf("[CONFIG] could not retrieve %s: %s", p.SaveFile, err)
 	}
 	r := bufio.NewReader(fi)
-	d := gob.NewDecoder(r)
+	d := json.NewDecoder(r)
 	d.Decode(p)
-	for _, proxy := range p.ProxyMap {
-		if err := proxy.Init(); err != nil {
+	for _, cfg := range p.ProxyConfigs {
+		log.Printf("[CONFIG] retrieve found: %s", cfg.LocalAddr)
+		if err := p.add(cfg); err != nil {
 			panic(err)
 		}
-		proxy.Listen()
 	}
-	p.Unlock()
 }
