@@ -10,9 +10,9 @@ import (
 type TCPProxy struct {
 	NumHandlers      int
 	MaxPending       int
-	LocalAddrString  string       `json:"LocalAddr"`
+	LocalAddrString  string `json:"LocalAddr"`
 	localAddr        *net.TCPAddr
-	RemoteAddrString string       `json:"RemoteAddr"`
+	RemoteAddrString string `json:"RemoteAddr"`
 	remoteAddr       *net.TCPAddr
 	listener         *net.TCPListener
 	dead             chan bool
@@ -54,7 +54,6 @@ func (p *TCPProxy) LocalAddr() string {
 func (p *TCPProxy) RemoteAddr() string {
 	return p.RemoteAddrString
 }
-
 
 func (p *TCPProxy) Listen() {
 	p.Log("proxying to %s", p.RemoteAddr())

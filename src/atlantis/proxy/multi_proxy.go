@@ -156,7 +156,7 @@ func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) 
 	// add the stuff we need to
 	for lAddr, cfg := range body {
 		if pxy := p.ProxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddr() &&
-				cfg.RemoteAddr == pxy.RemoteAddr() {
+			cfg.RemoteAddr == pxy.RemoteAddr() {
 			continue // same thing
 		} else if pxy != nil {
 			// not the same thing, kill the proxy then restart it.

@@ -31,12 +31,12 @@ func NewHTTPProxy(lAddr, rAddr string) Proxy {
 }
 
 func (p *HTTPProxy) Init() error {
-	u, err := url.Parse("http://"+p.RemoteAddr())
+	u, err := url.Parse("http://" + p.RemoteAddr())
 	if err != nil {
 		return err
 	}
 	p.rProxy = httputil.NewSingleHostReverseProxy(u)
-	p.server = &http.Server {
+	p.server = &http.Server{
 		Handler:        p,
 		Addr:           p.LocalAddr(),
 		ReadTimeout:    120 * time.Second,

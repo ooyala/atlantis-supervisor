@@ -6,11 +6,11 @@ const (
 )
 
 type ProxyConfig struct {
-	Type             int
-	NumHandlers      int
-	MaxPending       int
-	LocalAddr        string
-	RemoteAddr       string
+	Type        int
+	NumHandlers int
+	MaxPending  int
+	LocalAddr   string
+	RemoteAddr  string
 }
 
 type Proxy interface {
@@ -31,4 +31,3 @@ func NewProxyWithConfig(c *ProxyConfig) Proxy {
 		return nil
 	}
 }
-
