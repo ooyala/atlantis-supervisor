@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -21,6 +22,7 @@ type HTTPProxy struct {
 	rProxy           *httputil.ReverseProxy
 	die              bool
 	dead             chan bool
+	listener         net.Listener
 }
 
 func NewHTTPProxy(lAddr, rAddr string) Proxy {
@@ -36,6 +38,10 @@ func (p *HTTPProxy) Init() error {
 		return err
 	}
 	p.rProxy = httputil.NewSingleHostReverseProxy(u)
+	p.listener, err = net.Listen("tcp", p.LocalAddr())
+	if err != nil {
+		return err
+	}
 	p.server = &http.Server{
 		Handler:        p,
 		Addr:           p.LocalAddr(),
@@ -57,25 +63,8 @@ func (p *HTTPProxy) RemoteAddr() string {
 func (p *HTTPProxy) Listen() {
 	p.Log("proxying to %s", p.RemoteAddr())
 	p.dead = make(chan bool)
-	p.listenWrapper()
+	p.server.Serve(p.listener)
 	p.dead <- true // if we get here, that means we paniced and are dead
-}
-
-func (p *HTTPProxy) listenWrapper() {
-	defer func() {
-		r := recover()
-		switch r.(type) {
-		case HTTPProxyDeadError:
-			// sqaush panic
-			p.Log("die")
-		default:
-			panic(r) // bubble up panic if its not our special one
-		}
-	}()
-	err := p.server.ListenAndServe()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (p *HTTPProxy) Die() {
@@ -89,7 +78,7 @@ func (p *HTTPProxy) Die() {
 
 func (p *HTTPProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if p.die {
-		panic(HTTPProxyDeadError{}) // we're supposed to die
+		defer p.listener.Close()
 	}
 	r.Host = p.RemoteAddr()
 	p.rProxy.ServeHTTP(w, r)
