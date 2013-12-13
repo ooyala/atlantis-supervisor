@@ -100,7 +100,7 @@ func (p *TCPProxy) Log(format string, args ...interface{}) {
 	log.Printf("["+p.LocalAddrString+"][TCP]  "+format, args...)
 }
 
-func (p *TCPProxy) copy(id int, dst io.ReadWriteCloser, src io.ReadWriteCloser) {
+func (p *TCPProxy) copy(dst io.ReadWriteCloser, src io.ReadWriteCloser) {
 	io.Copy(dst, src)
 	dst.Close()
 	src.Close()
@@ -120,8 +120,8 @@ func (p *TCPProxy) handleConn(id int, in <-chan *net.TCPConn, die <-chan bool) {
 				lConn.Close()
 				continue
 			}
-			go p.copy(0, lConn, rConn)
-			go p.copy(1, rConn, lConn)
+			go p.copy(lConn, rConn)
+			go p.copy(rConn, lConn)
 		}
 	}
 }
