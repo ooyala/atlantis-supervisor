@@ -22,7 +22,7 @@ func (e *ContainerMaintenanceExecutor) Result() interface{} {
 }
 
 func (e *ContainerMaintenanceExecutor) Description() string {
-	return fmt.Sprintf("%s : %t", e.arg.ContainerId, e.arg.Maintenance)
+	return fmt.Sprintf("%s : %t", e.arg.ContainerID, e.arg.Maintenance)
 }
 
 func (e *ContainerMaintenanceExecutor) Authorize() error {
@@ -30,10 +30,10 @@ func (e *ContainerMaintenanceExecutor) Authorize() error {
 }
 
 func (e *ContainerMaintenanceExecutor) Execute(t *Task) error {
-	if e.arg.ContainerId == "" {
+	if e.arg.ContainerID == "" {
 		return errors.New("Please specify a container id.")
 	}
-	cont := containers.Get(e.arg.ContainerId)
+	cont := containers.Get(e.arg.ContainerID)
 	if cont == nil {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")

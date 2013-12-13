@@ -25,10 +25,10 @@ func (e *DeployExecutor) Result() interface{} {
 func (e *DeployExecutor) Description() string {
 	if e.arg.Manifest == nil {
 		return fmt.Sprintf("%s @ %s in %s on %s -> %s with cpu ? and mem ?", e.arg.App, e.arg.Sha, e.arg.Env,
-			e.arg.Host, e.arg.ContainerId)
+			e.arg.Host, e.arg.ContainerID)
 	}
 	return fmt.Sprintf("%s @ %s in %s on %s -> %s with cpu %d and mem %d", e.arg.App, e.arg.Sha, e.arg.Env,
-		e.arg.Host, e.arg.ContainerId, e.arg.Manifest.CPUShares, e.arg.Manifest.MemoryLimit)
+		e.arg.Host, e.arg.ContainerID, e.arg.Manifest.CPUShares, e.arg.Manifest.MemoryLimit)
 }
 
 func (e *DeployExecutor) Authorize() error {
@@ -42,7 +42,7 @@ func (e *DeployExecutor) Execute(t *Task) error {
 	if e.arg.Sha == "" {
 		return errors.New("Please specify a sha.")
 	}
-	if e.arg.ContainerId == "" {
+	if e.arg.ContainerID == "" {
 		return errors.New("Please specify a container id.")
 	}
 	if e.arg.Manifest == nil {
@@ -54,7 +54,7 @@ func (e *DeployExecutor) Execute(t *Task) error {
 	if e.arg.Manifest.MemoryLimit == 0 {
 		return errors.New("Please specify a memory limit.")
 	}
-	cont, err := containers.Reserve(e.arg.ContainerId, e.arg.Manifest)
+	cont, err := containers.Reserve(e.arg.ContainerID, e.arg.Manifest)
 	if err != nil {
 		t.Log("-> Error reserving container: %v", err)
 		return err
@@ -89,7 +89,7 @@ func (e *TeardownExecutor) Result() interface{} {
 }
 
 func (e *TeardownExecutor) Description() string {
-	return fmt.Sprintf("%v, all: %t", e.arg.ContainerIds, e.arg.All)
+	return fmt.Sprintf("%v, all: %t", e.arg.ContainerIDs, e.arg.All)
 }
 
 func (e *TeardownExecutor) Authorize() error {
@@ -97,30 +97,30 @@ func (e *TeardownExecutor) Authorize() error {
 }
 
 func (e *TeardownExecutor) Execute(t *Task) error {
-	if e.arg.ContainerIds == nil && e.arg.All == false {
+	if e.arg.ContainerIDs == nil && e.arg.All == false {
 		return errors.New("Please specify container ids or all.")
 	}
-	var containerIds []string
+	var containerIDs []string
 	if e.arg.All {
 		t.Log("All requested.")
 		conts, _ := containers.List()
-		containerIds = make([]string, len(conts))
+		containerIDs = make([]string, len(conts))
 		i := 0
 		for id, _ := range conts {
 			t.Log("-> found container %s", id)
-			containerIds[i] = id
+			containerIDs[i] = id
 			i++
 		}
 	} else {
-		containerIds = e.arg.ContainerIds
+		containerIDs = e.arg.ContainerIDs
 	}
-	e.reply.ContainerIds = []string{}
-	for _, containerId := range containerIds {
-		if !containers.Teardown(containerId) {
-			t.Log("-> no such container: %s", containerId)
-			e.reply.Status += "no such container: " + containerId + "\n"
+	e.reply.ContainerIDs = []string{}
+	for _, containerID := range containerIDs {
+		if !containers.Teardown(containerID) {
+			t.Log("-> no such container: %s", containerID)
+			e.reply.Status += "no such container: " + containerID + "\n"
 		} else {
-			e.reply.ContainerIds = append(e.reply.ContainerIds, containerId)
+			e.reply.ContainerIDs = append(e.reply.ContainerIDs, containerID)
 		}
 	}
 	if e.reply.Status == "" {

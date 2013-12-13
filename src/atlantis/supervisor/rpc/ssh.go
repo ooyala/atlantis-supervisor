@@ -22,7 +22,7 @@ func (e *AuthorizeSSHExecutor) Result() interface{} {
 }
 
 func (e *AuthorizeSSHExecutor) Description() string {
-	return fmt.Sprintf("%s @ %s :\n%s", e.arg.User, e.arg.ContainerId, e.arg.PublicKey)
+	return fmt.Sprintf("%s @ %s :\n%s", e.arg.User, e.arg.ContainerID, e.arg.PublicKey)
 }
 
 func (e *AuthorizeSSHExecutor) Authorize() error {
@@ -33,13 +33,13 @@ func (e *AuthorizeSSHExecutor) Execute(t *Task) error {
 	if e.arg.PublicKey == "" {
 		return errors.New("Please specify an SSH public key.")
 	}
-	if e.arg.ContainerId == "" {
+	if e.arg.ContainerID == "" {
 		return errors.New("Please specify a container id.")
 	}
 	if e.arg.User == "" {
 		return errors.New("Please specify a user.")
 	}
-	cont := containers.Get(e.arg.ContainerId)
+	cont := containers.Get(e.arg.ContainerID)
 	if cont == nil {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")
@@ -73,7 +73,7 @@ func (e *DeauthorizeSSHExecutor) Result() interface{} {
 }
 
 func (e *DeauthorizeSSHExecutor) Description() string {
-	return fmt.Sprintf("%s @ %s", e.arg.User, e.arg.ContainerId)
+	return fmt.Sprintf("%s @ %s", e.arg.User, e.arg.ContainerID)
 }
 
 func (e *DeauthorizeSSHExecutor) Authorize() error {
@@ -81,13 +81,13 @@ func (e *DeauthorizeSSHExecutor) Authorize() error {
 }
 
 func (e *DeauthorizeSSHExecutor) Execute(t *Task) error {
-	if e.arg.ContainerId == "" {
+	if e.arg.ContainerID == "" {
 		return errors.New("Please specify a container id.")
 	}
 	if e.arg.User == "" {
 		return errors.New("Please specify a user.")
 	}
-	cont := containers.Get(e.arg.ContainerId)
+	cont := containers.Get(e.arg.ContainerID)
 	if cont == nil {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")

@@ -167,7 +167,7 @@ func reserve(req *ReserveReq) {
 		for i := uint16(0); i < NumSecondaryPorts; i++ {
 			secondaryPorts[i] = MinPort + (NumContainers * (i + 2)) + port
 		}
-		containers[req.id] = &Container{Id: req.id, PrimaryPort: MinPort + port,
+		containers[req.id] = &Container{ID: req.id, PrimaryPort: MinPort + port,
 			SSHPort: MinPort + NumContainers + port, SecondaryPorts: secondaryPorts, Manifest: req.manifest}
 		resp.container = containers[req.id]
 		usedMemoryLimit = usedMemoryLimit + req.manifest.MemoryLimit

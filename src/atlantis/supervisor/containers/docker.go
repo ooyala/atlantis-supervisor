@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	dockerIdRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
+	dockerIDRegexp = regexp.MustCompile("^[A-Za-z0-9]+$")
 	dockerLock     = sync.Mutex{}
 	dockerClient   *docker.Client
 )
@@ -102,7 +102,7 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 	// get env cfg
 	envs := []string{
 		"ATLANTIS=true",
-		fmt.Sprintf("CONTAINER_ID=%s", c.Id),
+		fmt.Sprintf("CONTAINER_ID=%s", c.ID),
 		fmt.Sprintf("CONTAINER_HOST=%s", c.Host),
 		fmt.Sprintf("CONTAINER_ENV=%s", c.Env),
 		fmt.Sprintf("HTTP_PORT=%d", c.PrimaryPort),
@@ -155,20 +155,20 @@ func (c *Container) dockerCfgs(repo string) (*docker.Config, *docker.HostConfig)
 	}
 	dHostCfg := &docker.HostConfig{
 		PortBindings: portBindings,
-		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.Id)},
+		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.ID)},
 		// call veth something we can actually look up later:
 		LxcConf: []docker.KeyValuePair{
 			docker.KeyValuePair{
 				Key:   "lxc.network.veth.pair",
-				Value: "veth" + c.RandomId(),
+				Value: "veth" + c.RandomID(),
 			},
 		},
 	}
 	return dCfg, dHostCfg
 }
 
-func (c *Container) RandomId() string {
-	return c.Id[strings.LastIndex(c.Id, "-")+1:]
+func (c *Container) RandomID() string {
+	return c.ID[strings.LastIndex(c.ID, "-")+1:]
 }
 
 // Deploy the given app+sha with the dependencies defined in deps. This will spin up a new docker container.
@@ -183,12 +183,12 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 	}
 	// Pull docker container
 	if pretending() {
-		log.Printf("[pretend] deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
+		log.Printf("[pretend] deploy %s with %s @ %s...", c.ID, c.App, c.Sha)
 		log.Printf("[pretend] docker pull %s/%s", RegistryHost, dRepo)
 		log.Printf("[pretend] docker run %s/%s", RegistryHost, dRepo)
-		c.DockerId = fmt.Sprintf("pretend-docker-id-%d", c.PrimaryPort)
+		c.DockerID = fmt.Sprintf("pretend-docker-id-%d", c.PrimaryPort)
 	} else {
-		log.Printf("deploy %s with %s @ %s...", c.Id, c.App, c.Sha)
+		log.Printf("deploy %s with %s @ %s...", c.ID, c.App, c.Sha)
 		log.Printf("docker pull http://%s/%s", RegistryHost, dRepo)
 		dockerLock.Lock()
 		err := dockerClient.PullImage(docker.PullImageOptions{Repository: fmt.Sprintf("%s/%s", RegistryHost, dRepo)},
@@ -198,7 +198,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 			return err
 		}
 
-		err = os.MkdirAll(fmt.Sprintf("/var/log/atlantis/containers/%s", c.Id), 0755)
+		err = os.MkdirAll(fmt.Sprintf("/var/log/atlantis/containers/%s", c.ID), 0755)
 		if err != nil {
 			return err
 		}
@@ -207,16 +207,16 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 		// create docker container
 		dCfg, dHostCfg := c.dockerCfgs(dRepo)
 		dockerLock.Lock()
-		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.Id}, dCfg)
+		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.ID}, dCfg)
 		dockerLock.Unlock()
 		if err != nil {
 			return err
 		}
-		c.DockerId = dCont.ID
+		c.DockerID = dCont.ID
 
 		// start docker container
 		dockerLock.Lock()
-		err = dockerClient.StartContainer(c.DockerId, dHostCfg)
+		err = dockerClient.StartContainer(c.DockerID, dHostCfg)
 		dockerLock.Unlock()
 		if err != nil {
 			return err
@@ -229,24 +229,24 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 // Teardown the container. This will kill the docker container but will not free the ports/containers
 func (c *Container) teardown() {
 	if pretending() {
-		log.Printf("[pretend] teardown %s...", c.Id)
+		log.Printf("[pretend] teardown %s...", c.ID)
 		return
 	} else {
-		log.Printf("teardown %s...", c.Id)
+		log.Printf("teardown %s...", c.ID)
 	}
 	defer removeExited()
 	dockerLock.Lock()
-	err := dockerClient.KillContainer(c.DockerId)
+	err := dockerClient.KillContainer(c.DockerID)
 	dockerLock.Unlock()
 	if err != nil {
-		log.Printf("failed to teardown %s: %v", c.Id, err)
+		log.Printf("failed to teardown %s: %v", c.ID, err)
 	}
 }
 
 // This calls the Teardown(id string) method to ensure that the ports/containers are freed. That will in turn
 // call c.teardown(id string)
 func (c *Container) Teardown() {
-	Teardown(c.Id)
+	Teardown(c.ID)
 }
 
 func (c *Container) AuthorizeSSHUser(user, publicKey string) error {

@@ -173,7 +173,7 @@ func (c *TeardownCommand) Execute(args []string) error {
 		arg.All = true
 	} else if c.Containers != nil && len(c.Containers) > 0 {
 		log.Printf("Supervisor Teardown %v...", c.Containers)
-		arg.ContainerIds = c.Containers
+		arg.ContainerIDs = c.Containers
 	} else {
 		return errors.New("Please specify either all or a list of containers to teardown")
 	}
@@ -182,7 +182,7 @@ func (c *TeardownCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("-> Tore down %v", reply.ContainerIds)
+	log.Printf("-> Tore down %v", reply.ContainerIDs)
 	log.Printf("-> %s", reply.Status)
 	return nil
 }
@@ -271,7 +271,7 @@ type ContainerMaintenanceCommand struct {
 func (c *ContainerMaintenanceCommand) Execute(args []string) error {
 	overlayConfig()
 	log.Println("Container Maintenance...")
-	arg := SupervisorContainerMaintenanceArg{ContainerId: c.Container, Maintenance: c.Maintenance}
+	arg := SupervisorContainerMaintenanceArg{ContainerID: c.Container, Maintenance: c.Maintenance}
 	var reply SupervisorContainerMaintenanceReply
 	err := rpcClient.Call("ContainerMaintenance", arg, &reply)
 	if err != nil {

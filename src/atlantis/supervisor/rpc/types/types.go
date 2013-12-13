@@ -8,20 +8,22 @@ import (
 )
 
 type Container struct {
+	ID             string
+	DockerID       string
+	IP             string
 	Host           string
 	PrimaryPort    uint16
 	SecondaryPorts []uint16
 	SSHPort        uint16
-	Id             string
 	App            string
 	Sha            string
 	Env            string
-	DockerId       string
 	Manifest       *Manifest
 }
 
 func (c *Container) String() string {
 	return fmt.Sprintf(`%s
+IP              : %s
 Host            : %s
 Primary Port    : %d
 SSH Port        : %d
@@ -30,8 +32,8 @@ App             : %s
 SHA             : %s
 CPU Shares      : %d
 Memory Limit    : %d
-Docker Id       : %s`, c.Id, c.Host, c.PrimaryPort, c.SSHPort, c.SecondaryPorts, c.App, c.Sha,
-		c.Manifest.CPUShares, c.Manifest.MemoryLimit, c.DockerId)
+Docker ID       : %s`, c.ID, c.IP, c.Host, c.PrimaryPort, c.SSHPort, c.SecondaryPorts, c.App, c.Sha,
+		c.Manifest.CPUShares, c.Manifest.MemoryLimit, c.DockerID)
 }
 
 // NOTE[jigish]: ONLY for TOML parsing
@@ -170,7 +172,7 @@ type SupervisorDeployArg struct {
 	App         string
 	Sha         string
 	Env         string
-	ContainerId string
+	ContainerID string
 	Manifest    *Manifest
 }
 
@@ -182,19 +184,19 @@ type SupervisorDeployReply struct {
 // ------------ Teardown ------------
 // Used to teardown a container
 type SupervisorTeardownArg struct {
-	ContainerIds []string
+	ContainerIDs []string
 	All          bool
 }
 
 type SupervisorTeardownReply struct {
-	ContainerIds []string
+	ContainerIDs []string
 	Status       string
 }
 
 // ------------ Get ------------
 // Used to get a container
 type SupervisorGetArg struct {
-	ContainerId string
+	ContainerID string
 }
 
 type SupervisorGetReply struct {
@@ -215,7 +217,7 @@ type SupervisorListReply struct {
 // ------------ Authorize SSH ------------
 // Authorize SSH
 type SupervisorAuthorizeSSHArg struct {
-	ContainerId string
+	ContainerID string
 	User        string
 	PublicKey   string
 }
@@ -228,7 +230,7 @@ type SupervisorAuthorizeSSHReply struct {
 // ------------ Deauthorize SSH ------------
 // Deauthorize SSH
 type SupervisorDeauthorizeSSHArg struct {
-	ContainerId string
+	ContainerID string
 	User        string
 }
 
@@ -239,7 +241,7 @@ type SupervisorDeauthorizeSSHReply struct {
 // ------------ Container Maintenance ------------
 // Set Container Maintenance Mode
 type SupervisorContainerMaintenanceArg struct {
-	ContainerId string
+	ContainerID string
 	Maintenance bool
 }
 

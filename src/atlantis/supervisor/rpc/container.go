@@ -53,7 +53,7 @@ func (e *GetExecutor) Result() interface{} {
 }
 
 func (e *GetExecutor) Description() string {
-	return fmt.Sprintf("%s", e.arg.ContainerId)
+	return fmt.Sprintf("%s", e.arg.ContainerID)
 }
 
 func (e *GetExecutor) Authorize() error {
@@ -61,7 +61,7 @@ func (e *GetExecutor) Authorize() error {
 }
 
 func (e *GetExecutor) Execute(t *Task) (err error) {
-	e.reply.Container = containers.Get(e.arg.ContainerId)
+	e.reply.Container = containers.Get(e.arg.ContainerID)
 	if e.reply.Container == nil {
 		e.reply.Status = StatusError
 		err = errors.New("Unknown Container.")

@@ -36,6 +36,7 @@ ifdef TEST_PACKAGE
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE
 else
 	@for p in `find ./src -type f -name "*.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
+		[ "$$p" == 'atlantis/proxy' ] && continue; \
 		echo "Testing $$p..."; \
 		go test $$p || exit 1; \
 	done

@@ -18,7 +18,7 @@ func (s *DockerSuite) TestDeploy(c *gocheck.C) {
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
 	cont := &Container{Manifest: &types.Manifest{}}
-	cont.Id = "first"
+	cont.ID = "first"
 	cont.Deploy("theHost", "theApp", "theSha", "theEnv")
 	c.Assert(cont.Host, gocheck.Equals, "theHost")
 	c.Assert(cont.App, gocheck.Equals, "theApp")
@@ -27,10 +27,10 @@ func (s *DockerSuite) TestDeploy(c *gocheck.C) {
 	os.RemoveAll(saveDir)
 }
 
-func (s *DockerSuite) TestRandomId(c *gocheck.C) {
+func (s *DockerSuite) TestRandomID(c *gocheck.C) {
 	cont := &Container{Manifest: &types.Manifest{}}
-	cont.Id = "hello-go-123456-jigish-JdAf89"
-	c.Assert(cont.RandomId(), gocheck.Equals, "JdAf89")
+	cont.ID = "hello-go-123456-jigish-JdAf89"
+	c.Assert(cont.RandomID(), gocheck.Equals, "JdAf89")
 }
 
 // no testing for teardown because pretend teardown does nothing.
