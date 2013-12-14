@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	. "atlantis/proxy/types"
 	"bufio"
 	"encoding/json"
 	"fmt"

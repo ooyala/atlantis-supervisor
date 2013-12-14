@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	. "atlantis/proxy/types"
 	"log"
 	"net"
 	"net/http"
