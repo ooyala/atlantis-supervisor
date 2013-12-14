@@ -11,6 +11,7 @@ import (
 func save() {
 	saveObject(ContainersFile, containers)
 	saveObject(PortsFile, ports)
+	saveObject(ProxyFile, Proxy)
 }
 
 // Use gob to save an object to a file

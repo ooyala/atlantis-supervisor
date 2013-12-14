@@ -20,21 +20,12 @@ func ProxyContainerDockerCfgs(c *types.ProxyContainer) (*docker.Config, *docker.
 
 	// get port cfg
 	exposedPorts := map[docker.Port]struct{}{}
-	portBindings := map[docker.Port][]docker.PortBinding{}
 	sConfigPort := fmt.Sprintf("%d", c.ConfigPort)
 	dConfigPort := docker.NewPort("tcp", sConfigPort)
-	exposedPorts[dConfigPort] = struct{}{}
-	portBindings[dConfigPort] = []docker.PortBinding{docker.PortBinding{
-		HostIp:   "",
-		HostPort: sConfigPort,
-	}}
 	sSSHPort := fmt.Sprintf("%d", c.SSHPort)
 	dSSHPort := docker.NewPort("tcp", sSSHPort)
+	exposedPorts[dConfigPort] = struct{}{}
 	exposedPorts[dSSHPort] = struct{}{}
-	portBindings[dSSHPort] = []docker.PortBinding{docker.PortBinding{
-		HostIp:   "",
-		HostPort: sSSHPort,
-	}}
 	for port := uint16(c.MinExposePort); port <= c.MaxExposePort; port++ {
 		sPort := fmt.Sprintf("%d", port)
 		dPort := docker.NewPort("tcp", sPort)
@@ -53,7 +44,7 @@ func ProxyContainerDockerCfgs(c *types.ProxyContainer) (*docker.Config, *docker.
 		Volumes:      map[string]struct{}{"/var/log/atlantis/syslog": struct{}{}},
 	}
 	dHostCfg := &docker.HostConfig{
-		PortBindings: portBindings,
+		PortBindings: map[docker.Port][]docker.PortBinding{},
 		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.ID)},
 		// call veth something we can actually look up later:
 		LxcConf: []docker.KeyValuePair{
