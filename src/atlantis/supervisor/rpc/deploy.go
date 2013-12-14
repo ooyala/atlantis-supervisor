@@ -65,8 +65,7 @@ func (e *DeployExecutor) Execute(t *Task) error {
 		return err
 	}
 	e.reply.Status = StatusOk
-	castedCont := Container(*cont)
-	e.reply.Container = &castedCont
+	e.reply.Container = &cont.Container
 	return nil
 }
 

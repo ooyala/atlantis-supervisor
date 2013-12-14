@@ -38,8 +38,7 @@ func (e *ContainerMaintenanceExecutor) Execute(t *Task) error {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")
 	}
-	castedCont := containers.Container(*cont)
-	if err := (&castedCont).SetMaintenance(e.arg.Maintenance); err != nil {
+	if err := containers.SetMaintenance(cont, e.arg.Maintenance); err != nil {
 		e.reply.Status = StatusError
 		return err
 	}

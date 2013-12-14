@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"atlantis/supervisor/docker"
 	"atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
@@ -46,7 +47,6 @@ type NumsResp struct {
 }
 
 var (
-	RegistryHost      string
 	SaveDir           string
 	NumContainers     uint16 // for maximum efficiency, should = CPUShares
 	NumSecondaryPorts uint16
@@ -67,7 +67,6 @@ var (
 
 // Initialize everything needed to use containers
 func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort uint16, cpu, memory uint) error {
-	RegistryHost = registry
 	SaveDir = saveDir
 	NumContainers = numContainers
 	NumSecondaryPorts = numSecondaryPorts
@@ -91,13 +90,11 @@ func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort ui
 	listChan = make(chan chan *ListResp)
 	numsChan = make(chan chan *NumsResp)
 	dieChan = make(chan bool)
-	err = DockerInit()
+	err = docker.Init(registry)
 	if err != nil {
 		return err
 	}
 	go containerManager()
-	go removeExited()
-	go restartGhost()
 	return nil
 }
 
@@ -167,8 +164,8 @@ func reserve(req *ReserveReq) {
 		for i := uint16(0); i < NumSecondaryPorts; i++ {
 			secondaryPorts[i] = MinPort + (NumContainers * (i + 2)) + port
 		}
-		containers[req.id] = &Container{ID: req.id, PrimaryPort: MinPort + port,
-			SSHPort: MinPort + NumContainers + port, SecondaryPorts: secondaryPorts, Manifest: req.manifest}
+		containers[req.id] = &Container{Container: types.Container{ID: req.id, PrimaryPort: MinPort + port,
+			SSHPort: MinPort + NumContainers + port, SecondaryPorts: secondaryPorts, Manifest: req.manifest}}
 		resp.container = containers[req.id]
 		usedMemoryLimit = usedMemoryLimit + req.manifest.MemoryLimit
 		usedCPUShares = usedCPUShares + req.manifest.CPUShares
@@ -180,7 +177,7 @@ func reserve(req *ReserveReq) {
 func teardown(req *TeardownReq) {
 	container := containers[req.id]
 	if container != nil {
-		containers[req.id].teardown()
+		docker.Teardown(containers[req.id])
 		ports = append(ports, containers[req.id].PrimaryPort-MinPort)
 		usedMemoryLimit = usedMemoryLimit - containers[req.id].Manifest.MemoryLimit
 		usedCPUShares = usedCPUShares - containers[req.id].Manifest.CPUShares
@@ -197,7 +194,7 @@ func get(req *GetReq) {
 	if !present {
 		req.respChan <- nil
 	} else {
-		castedContainer := types.Container(*container)
+		castedContainer := container.Container
 		req.respChan <- &castedContainer
 	}
 }
@@ -210,7 +207,7 @@ func list(respChan chan *ListResp) {
 	}
 	containersCopy := make(map[string]*types.Container, len(containers))
 	for id, container := range containers {
-		castedContainer := types.Container(*container)
+		castedContainer := container.Container
 		containersCopy[id] = &castedContainer
 	}
 	resp := &ListResp{containersCopy, portsCopy}

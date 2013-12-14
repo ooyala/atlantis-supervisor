@@ -44,8 +44,7 @@ func (e *AuthorizeSSHExecutor) Execute(t *Task) error {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")
 	}
-	castedCont := containers.Container(*cont)
-	if err := (&castedCont).AuthorizeSSHUser(e.arg.User, e.arg.PublicKey); err != nil {
+	if err := containers.AuthorizeSSHUser(cont, e.arg.User, e.arg.PublicKey); err != nil {
 		e.reply.Status = StatusError
 		return err
 	}
@@ -92,8 +91,7 @@ func (e *DeauthorizeSSHExecutor) Execute(t *Task) error {
 		e.reply.Status = StatusError
 		return errors.New("Unknown Container.")
 	}
-	castedCont := containers.Container(*cont)
-	if err := (&castedCont).DeauthorizeSSHUser(e.arg.User); err != nil {
+	if err := containers.DeauthorizeSSHUser(cont, e.arg.User); err != nil {
 		e.reply.Status = StatusError
 		return err
 	}

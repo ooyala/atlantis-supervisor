@@ -5,7 +5,88 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"io"
+	"strings"
 )
+
+type GenericContainer interface {
+	GetApp() string
+	GetSha() string
+	GetID() string
+	SetDockerID(string)
+	GetDockerID() string
+	GetDockerRepo() string
+	GetIP() string
+	SetIP(string)
+	GetSSHPort() uint16
+}
+
+type ProxyContainer struct {
+	ID            string
+	DockerID      string
+	IP            string
+	Host          string
+	ConfigPort    uint16
+	SSHPort       uint16
+	MinExposePort uint16
+	MaxExposePort uint16
+	App           string
+	Sha           string
+	NumHandlers   int
+	MaxPending    int
+	CPUShares     int64
+	MemoryLimit   int64
+	VEthName      string
+}
+
+func (c *ProxyContainer) GetID() string {
+	return c.ID
+}
+
+func (c *ProxyContainer) GetApp() string {
+	return c.App
+}
+
+func (c *ProxyContainer) GetSha() string {
+	return c.Sha
+}
+
+func (c *ProxyContainer) SetDockerID(id string) {
+	c.DockerID = id
+}
+
+func (c *ProxyContainer) GetDockerID() string {
+	return c.DockerID
+}
+
+func (c *ProxyContainer) GetDockerRepo() string {
+	return "system"
+}
+
+func (c *ProxyContainer) SetIP(ip string) {
+	c.IP = ip
+}
+
+func (c *ProxyContainer) GetIP() string {
+	return c.IP
+}
+
+func (c *ProxyContainer) GetSSHPort() uint16 {
+	return c.SSHPort
+}
+
+func (c *ProxyContainer) String() string {
+	return fmt.Sprintf(`%s
+IP              : %s
+Host            : %s
+Config Port     : %d
+SSH Port        : %d
+App             : %s
+SHA             : %s
+Min Expose Port : %d
+Max Expose Port : %d
+Docker ID       : %s`, c.ID, c.IP, c.Host, c.ConfigPort, c.SSHPort, c.App, c.Sha, c.MinExposePort,
+		c.MaxExposePort, c.DockerID)
+}
 
 type Container struct {
 	ID             string
@@ -19,6 +100,46 @@ type Container struct {
 	Sha            string
 	Env            string
 	Manifest       *Manifest
+}
+
+func (c *Container) GetID() string {
+	return c.ID
+}
+
+func (c *Container) GetApp() string {
+	return c.App
+}
+
+func (c *Container) GetSha() string {
+	return c.Sha
+}
+
+func (c *Container) SetDockerID(id string) {
+	c.DockerID = id
+}
+
+func (c *Container) GetDockerID() string {
+	return c.DockerID
+}
+
+func (c *Container) GetDockerRepo() string {
+	return "apps"
+}
+
+func (c *Container) SetIP(ip string) {
+	c.IP = ip
+}
+
+func (c *Container) GetIP() string {
+	return c.IP
+}
+
+func (c *Container) GetSSHPort() uint16 {
+	return c.SSHPort
+}
+
+func (c *Container) RandomID() string {
+	return c.ID[strings.LastIndex(c.ID, "-")+1:]
 }
 
 func (c *Container) String() string {
