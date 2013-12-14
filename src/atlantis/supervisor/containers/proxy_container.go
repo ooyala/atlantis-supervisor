@@ -44,13 +44,14 @@ func UpdateProxy(host, sha string) error {
 		MaxPending:    ProxyMaxPending,
 		CPUShares:     ProxyCPUShares,
 		MemoryLimit:   ProxyMemoryLimit,
-		VEthName:      "vethpxy"+sha[:6],
+		VEthName:      "vethpxy" + sha[:6],
 	}}
 	if err := newProxy.Deploy(); err != nil { // deploy new proxy (this will update iptables as well)
 		return err
 	}
 	if Proxy != nil { // if there is an older proxy, tear it down (this will update iptables as well)
 		if err := Proxy.Teardown(); err != nil {
+			// TODO[jigish] email?
 			log.Printf("ERROR: Teardown old proxy failed: %s", err.Error())
 		}
 	}

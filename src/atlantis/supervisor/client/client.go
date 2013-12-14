@@ -49,6 +49,8 @@ func New() *Supervisor {
 	ih.AddCommand("container-maintenance", "set maintenance mode for a container", "",
 		&ContainerMaintenanceCommand{})
 	ih.AddCommand("idle", "check if supervisor is idle", "", &IdleCommand{})
+	ih.AddCommand("update-proxy", "update the proxy to a sha", "", &UpdateProxyCommand{})
+	ih.AddCommand("get-proxy", "get the proxy's information", "", &GetProxyCommand{})
 	return ih
 }
 
@@ -300,5 +302,43 @@ func (c *IdleCommand) Execute(args []string) error {
 	} else {
 		log.Printf("Idle %t.", reply.Idle)
 	}
+	return nil
+}
+
+type UpdateProxyCommand struct {
+	Host string `short:"H" long:"host" description:"the host we're updating the proxy for"`
+	Sha  string `short:"s" long:"sha" description:"the sha to update to"`
+}
+
+func (c *UpdateProxyCommand) Execute(args []string) error {
+	overlayConfig()
+	if c.Sha == "" {
+		return errors.New("Please specify a sha")
+	}
+	log.Printf("Supervisor UpdateProxy to %s...", c.Sha)
+	arg := SupervisorUpdateProxyArg{Host: c.Host, Sha: c.Sha}
+	var reply SupervisorUpdateProxyReply
+	err := rpcClient.Call("UpdateProxy", arg, &reply)
+	if err != nil {
+		return err
+	}
+	log.Printf("-> %s - STATUS: %s", c.Sha, reply.Status)
+	log.Println("-> " + reply.Proxy.String())
+	return nil
+}
+
+type GetProxyCommand struct {
+}
+
+func (c *GetProxyCommand) Execute(args []string) error {
+	overlayConfig()
+	log.Println("Supervisor GetProxy")
+	arg := SupervisorGetProxyArg{}
+	var reply SupervisorGetProxyReply
+	err := rpcClient.Call("GetProxy", arg, &reply)
+	if err != nil {
+		return err
+	}
+	log.Println("-> " + reply.Proxy.String())
 	return nil
 }

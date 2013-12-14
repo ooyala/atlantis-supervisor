@@ -109,13 +109,13 @@ func (s *ContainersSuite) TestList(c *gocheck.C) {
 	first, err := Reserve("first", &types.Manifest{CPUShares: 1, MemoryLimit: 1})
 	c.Assert(err, gocheck.IsNil)
 	conts, ports := List()
-	c.Assert(*conts["first"], gocheck.DeepEquals, types.Container(*first))
+	c.Assert(*conts["first"], gocheck.DeepEquals, first.Container)
 	c.Assert(ports, gocheck.DeepEquals, []uint16{61001})
 	// reserve second and list
 	second, err := Reserve("second", &types.Manifest{CPUShares: 2, MemoryLimit: 2})
 	c.Assert(err, gocheck.IsNil)
 	conts, ports = List()
-	c.Assert(*conts["second"], gocheck.DeepEquals, types.Container(*second))
+	c.Assert(*conts["second"], gocheck.DeepEquals, second.Container)
 	c.Assert(ports, gocheck.DeepEquals, []uint16{})
 	// teardown first and list
 	c.Assert(Teardown("first"), gocheck.Equals, true)

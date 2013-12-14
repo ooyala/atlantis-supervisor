@@ -54,7 +54,7 @@ func (s *RpcSuite) TestDeploy(c *gocheck.C) {
 	c.Assert(reply.Container.ID, gocheck.Equals, "theContainerID")
 	c.Assert(reply.Container.App, gocheck.Equals, "theApp")
 	c.Assert(reply.Container.Sha, gocheck.Equals, "theSha")
-	c.Assert(reply.Container.DockerID, gocheck.Equals, "pretend-docker-id-61000")
+	c.Assert(reply.Container.DockerID, gocheck.Equals, "pretend-docker-id-theContainerID")
 	os.RemoveAll(saveDir)
 }
 

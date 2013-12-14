@@ -103,7 +103,7 @@ func Deploy(c types.GenericContainer) error {
 		log.Printf("[pretend] deploy %s with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
 		log.Printf("[pretend] docker pull %s", dRepo)
 		log.Printf("[pretend] docker run %s", dRepo)
-		c.SetDockerID(fmt.Sprintf("pretend-docker-id-%d", c.GetID()))
+		c.SetDockerID(fmt.Sprintf("pretend-docker-id-%s", c.GetID()))
 	} else {
 		log.Printf("deploy %s with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
 		log.Printf("docker pull %s", dRepo)

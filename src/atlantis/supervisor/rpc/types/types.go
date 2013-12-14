@@ -379,3 +379,24 @@ type SupervisorIdleReply struct {
 	Idle   bool
 	Status string
 }
+
+// ------------ UpdateProxy ------------
+// UpdateProxy
+type SupervisorUpdateProxyArg struct {
+	Host string
+	Sha  string
+}
+
+type SupervisorUpdateProxyReply struct {
+	Status string
+	Proxy  *ProxyContainer
+}
+
+// ------------ GetProxy ------------
+// GetProxy
+type SupervisorGetProxyArg struct {
+}
+
+type SupervisorGetProxyReply struct {
+	Proxy *ProxyContainer
+}
