@@ -91,7 +91,7 @@ func (p *MultiProxy) Listen() error {
 	gmux.HandleFunc("/proxy/{local}/{remote}", p.RemoveProxyHandler).Methods("DELETE")
 	gmux.HandleFunc("/proxy/{local}", p.RemoveProxyHandler).Methods("DELETE")
 	gmux.HandleFunc("/config", p.GetConfigHandler).Methods("GET")
-	gmux.HandleFunc("/config", p.PatchConfigHandler).Methods("PATCH")
+	gmux.HandleFunc("/config", p.PutConfigHandler).Methods("PUT")
 
 	server := &http.Server{Addr: p.ConfigAddr, Handler: apachelog.NewHandler(gmux, os.Stderr)}
 	log.Printf("[CONFIG] listening on %s", p.ConfigAddr)
@@ -151,7 +151,7 @@ func (p *MultiProxy) GetConfigHandler(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(p.ProxyConfigs)
 }
 
-func (p *MultiProxy) PatchConfigHandler(w http.ResponseWriter, r *http.Request) {
+func (p *MultiProxy) PutConfigHandler(w http.ResponseWriter, r *http.Request) {
 	p.Lock()
 	defer p.Unlock()
 	var body map[string]*ProxyConfig
