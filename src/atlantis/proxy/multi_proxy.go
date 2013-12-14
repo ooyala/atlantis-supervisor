@@ -161,6 +161,8 @@ func (p *MultiProxy) PutConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	errors := []string{}
 	// add the stuff we need to
 	for lAddr, cfg := range body {
 		if pxy := p.proxyMap[lAddr]; pxy != nil && cfg.LocalAddr == pxy.LocalAddr() &&
@@ -173,10 +175,12 @@ func (p *MultiProxy) PutConfigHandler(w http.ResponseWriter, r *http.Request) {
 			// restart
 			if err := p.add(cfg); err != nil {
 				log.Printf("[CONFIG] ERROR: %v", err)
+				errors = append(errors, err.Error())
 			}
 		} else {
 			if err := p.add(cfg); err != nil {
 				log.Printf("[CONFIG] ERROR: %v", err)
+				errors = append(errors, err.Error())
 			}
 		}
 	}
@@ -188,6 +192,11 @@ func (p *MultiProxy) PutConfigHandler(w http.ResponseWriter, r *http.Request) {
 			p.remove(pxy)
 		}
 	}
+	if len(errors) != 0 {
+		http.Error(w, strings.Join(errors, "\n"), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprint(w, "OK\n")
 }
 
 func (p *MultiProxy) remove(pxy Proxy) {
