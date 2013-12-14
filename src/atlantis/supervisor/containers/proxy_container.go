@@ -1,10 +1,16 @@
 package containers
 
 import (
+	ptypes "atlantis/proxy/types"
 	"atlantis/supervisor/docker"
 	"atlantis/supervisor/rpc/types"
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 )
 
 const (
@@ -25,6 +31,36 @@ var (
 
 type ProxyContainer struct {
 	types.ProxyContainer
+}
+
+func ConfigureProxy(cfg map[string]*ptypes.ProxyConfig) error {
+	if Proxy == nil {
+		return errors.New("No Proxy Deployed.")
+	}
+	cfgBytes, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	cfgBuffer := bytes.NewBuffer(cfgBytes)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("http://%s:%d", Proxy.IP, Proxy.ConfigPort), cfgBuffer)
+	if err != nil {
+		return err
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	} else {
+		return errors.New(string(bodyBytes))
+	}
 }
 
 func UpdateProxy(host, sha string) error {

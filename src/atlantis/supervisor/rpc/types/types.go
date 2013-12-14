@@ -1,6 +1,7 @@
 package types
 
 import (
+	ptypes "atlantis/proxy/types"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -399,4 +400,14 @@ type SupervisorGetProxyArg struct {
 
 type SupervisorGetProxyReply struct {
 	Proxy *ProxyContainer
+}
+
+// ------------ ConfigureProxy ------------
+// ConfigureProxy
+type SupervisorConfigureProxyArg struct {
+	ProxyConfig map[string]*ptypes.ProxyConfig
+}
+
+type SupervisorConfigureProxyReply struct {
+	Status string
 }

@@ -2,13 +2,16 @@ package client
 
 import (
 	. "atlantis/common"
+	ptypes "atlantis/proxy/types"
 	. "atlantis/supervisor/constant"
 	. "atlantis/supervisor/rpc/types"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
 	"log"
+	"os"
 	"time"
 )
 
@@ -340,5 +343,35 @@ func (c *GetProxyCommand) Execute(args []string) error {
 		return err
 	}
 	log.Println("-> " + reply.Proxy.String())
+	return nil
+}
+
+type ConfigureProxyCommand struct {
+	ConfigFile string `short:"c" long:"config-file" description:"the config file to use"`
+}
+
+func (c *ConfigureProxyCommand) Execute(args []string) error {
+	overlayConfig()
+	if c.ConfigFile == "" {
+		return errors.New("Please specify a config file")
+	}
+	log.Printf("Supervisor ConfigureProxy with %s...", c.ConfigFile)
+	cfgFile, err := os.Open(c.ConfigFile)
+	if err != nil {
+		return err
+	}
+	cfgDecoder := json.NewDecoder(cfgFile)
+	var cfg map[string]*ptypes.ProxyConfig
+	err = cfgDecoder.Decode(&cfg)
+	if err != nil {
+		return err
+	}
+	arg := SupervisorConfigureProxyArg{ProxyConfig: cfg}
+	var reply SupervisorConfigureProxyReply
+	err = rpcClient.Call("ConfigureProxy", arg, &reply)
+	if err != nil {
+		return err
+	}
+	log.Printf("-> %s", reply.Status)
 	return nil
 }

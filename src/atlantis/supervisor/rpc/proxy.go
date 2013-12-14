@@ -8,6 +8,45 @@ import (
 	"fmt"
 )
 
+type ConfigureProxyExecutor struct {
+	arg   SupervisorConfigureProxyArg
+	reply *SupervisorConfigureProxyReply
+}
+
+func (e *ConfigureProxyExecutor) Request() interface{} {
+	return e.arg
+}
+
+func (e *ConfigureProxyExecutor) Result() interface{} {
+	return e.reply
+}
+
+func (e *ConfigureProxyExecutor) Description() string {
+	return "ConfigureProxy"
+}
+
+func (e *ConfigureProxyExecutor) Authorize() error {
+	return nil
+}
+
+func (e *ConfigureProxyExecutor) Execute(t *Task) error {
+	if e.arg.ProxyConfig == nil {
+		return errors.New("Please specify a config.")
+	}
+	t.Log("New Config: %v", e.arg.ProxyConfig)
+	err := containers.ConfigureProxy(e.arg.ProxyConfig)
+	if err != nil {
+		e.reply.Status = StatusError
+		return err
+	}
+	e.reply.Status = StatusOk
+	return nil
+}
+
+func (ih *Supervisor) ConfigureProxy(arg SupervisorConfigureProxyArg, reply *SupervisorConfigureProxyReply) error {
+	return NewTask("ConfigureProxy", &ConfigureProxyExecutor{arg, reply}).Run()
+}
+
 type UpdateProxyExecutor struct {
 	arg   SupervisorUpdateProxyArg
 	reply *SupervisorUpdateProxyReply
