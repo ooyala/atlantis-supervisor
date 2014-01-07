@@ -148,6 +148,9 @@ func overlayConfig() {
 	if opts.MaintenanceCheckInterval != "" {
 		config.MaintenanceCheckInterval = opts.MaintenanceCheckInterval
 	}
+	if opts.ProxyIP != "" {
+		config.ProxyIP = opts.ProxyIP
+	}
 }
 
 func signalListener() {
