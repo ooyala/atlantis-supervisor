@@ -140,10 +140,10 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 
 func (c *ContainerCheck) serviceCheck(script string) *ServiceCheck {
 	// The full path to the script is required
-	command := fmt.Sprintf("%s/%s %d %s", c.Directory, script, c.container.PrimaryPort, c.container.Id)
+	command := fmt.Sprintf("%s/%s %d %s", c.Directory, script, c.container.PrimaryPort, c.container.ID)
 	// The service name is obtained be removing the file extension from the script and appending the container
 	// id
-	serviceName := fmt.Sprintf("%s_%s", strings.Split(script, ".")[0], c.container.Id)
+	serviceName := fmt.Sprintf("%s_%s", strings.Split(script, ".")[0], c.container.ID)
 	return &ServiceCheck{serviceName, c.User, c.Identity, c.container.Host, c.container.SSHPort, command}
 }
 
@@ -208,7 +208,7 @@ func Run() {
 		if c.Host == "" {
 			c.Host = "localhost"
 		}
-		check := &ContainerCheck{config.CheckName + "_" + c.Id, config.SSHUser, config.SSHIdentity, config.CheckDir, c}
+		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
 	for _ = range containers {
