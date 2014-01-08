@@ -1,7 +1,6 @@
 package types
 
 import (
-	ptypes "atlantis/proxy/types"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -19,74 +18,6 @@ type GenericContainer interface {
 	GetIP() string
 	SetIP(string)
 	GetSSHPort() uint16
-}
-
-type ProxyContainer struct {
-	ID            string
-	DockerID      string
-	IP            string
-	Host          string
-	ConfigPort    uint16
-	SSHPort       uint16
-	MinExposePort uint16
-	MaxExposePort uint16
-	App           string
-	Sha           string
-	NumHandlers   int
-	MaxPending    int
-	CPUShares     int64
-	MemoryLimit   int64
-	VEthName      string
-}
-
-func (c *ProxyContainer) GetID() string {
-	return c.ID
-}
-
-func (c *ProxyContainer) GetApp() string {
-	return c.App
-}
-
-func (c *ProxyContainer) GetSha() string {
-	return c.Sha
-}
-
-func (c *ProxyContainer) SetDockerID(id string) {
-	c.DockerID = id
-}
-
-func (c *ProxyContainer) GetDockerID() string {
-	return c.DockerID
-}
-
-func (c *ProxyContainer) GetDockerRepo() string {
-	return "system"
-}
-
-func (c *ProxyContainer) SetIP(ip string) {
-	c.IP = ip
-}
-
-func (c *ProxyContainer) GetIP() string {
-	return c.IP
-}
-
-func (c *ProxyContainer) GetSSHPort() uint16 {
-	return c.SSHPort
-}
-
-func (c *ProxyContainer) String() string {
-	return fmt.Sprintf(`%s
-IP              : %s
-Host            : %s
-Config Port     : %d
-SSH Port        : %d
-App             : %s
-SHA             : %s
-Min Expose Port : %d
-Max Expose Port : %d
-Docker ID       : %s`, c.ID, c.IP, c.Host, c.ConfigPort, c.SSHPort, c.App, c.Sha, c.MinExposePort,
-		c.MaxExposePort, c.DockerID)
 }
 
 type Container struct {
@@ -378,36 +309,5 @@ type SupervisorIdleArg struct {
 
 type SupervisorIdleReply struct {
 	Idle   bool
-	Status string
-}
-
-// ------------ UpdateProxy ------------
-// UpdateProxy
-type SupervisorUpdateProxyArg struct {
-	Host string
-	Sha  string
-}
-
-type SupervisorUpdateProxyReply struct {
-	Status string
-	Proxy  *ProxyContainer
-}
-
-// ------------ GetProxy ------------
-// GetProxy
-type SupervisorGetProxyArg struct {
-}
-
-type SupervisorGetProxyReply struct {
-	Proxy *ProxyContainer
-}
-
-// ------------ ConfigureProxy ------------
-// ConfigureProxy
-type SupervisorConfigureProxyArg struct {
-	ProxyConfig map[string]*ptypes.ProxyConfig
-}
-
-type SupervisorConfigureProxyReply struct {
 	Status string
 }

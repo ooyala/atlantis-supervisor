@@ -30,7 +30,6 @@ type Config struct {
 	Zone                     string `toml:"zone"`
 	MaintenanceFile          string `toml:"maintenance_file"`
 	MaintenanceCheckInterval string `toml:"maintenance_check_interval"`
-	ProxyIP                  string `toml:"proxy_ip"`
 }
 
 type Opts struct {
@@ -48,7 +47,6 @@ type Opts struct {
 	Config                   string `long:"config-file" default:"/etc/atlantis/supervisor/server.toml" description:"the config file to use"`
 	MaintenanceFile          string `long:"maintenance-file" description:"the maintenance file to check"`
 	MaintenanceCheckInterval string `long:"maintenance-check-interval" description:"the interval to check the maintenance file"`
-	ProxyIP                  string `long:"proxy-ip" description:"the ip that supervisors assign to the proxy"`
 }
 
 var opts = &Opts{}
@@ -66,7 +64,6 @@ var config = &Config{
 	Zone:                     DefaultZone,
 	MaintenanceFile:          DefaultMaintenanceFile,
 	MaintenanceCheckInterval: DefaultMaintenanceCheckInterval,
-	ProxyIP:                  DefaultProxyIP,
 }
 
 type Supervisor struct {
@@ -147,9 +144,6 @@ func overlayConfig() {
 	}
 	if opts.MaintenanceCheckInterval != "" {
 		config.MaintenanceCheckInterval = opts.MaintenanceCheckInterval
-	}
-	if opts.ProxyIP != "" {
-		config.ProxyIP = opts.ProxyIP
 	}
 }
 

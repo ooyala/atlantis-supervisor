@@ -89,8 +89,6 @@ func DockerCfgs(c types.GenericContainer) (*docker.Config, *docker.HostConfig) {
 	switch typedC := c.(type) {
 	case *types.Container:
 		return ContainerDockerCfgs(typedC)
-	case *types.ProxyContainer:
-		return ProxyContainerDockerCfgs(typedC)
 	default:
 		return nil, nil
 	}
