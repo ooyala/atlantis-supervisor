@@ -93,7 +93,6 @@ Docker ID       : %s`, c.ID, c.IP, c.Host, c.PrimaryPort, c.SSHPort, c.Secondary
 type ManifestTOML struct {
 	Name        string
 	Description string
-	Internal    bool
 	Instances   uint
 	CPUShares   uint `toml:"cpu_shares"`   // should be 1 or any multiple of 5
 	MemoryLimit uint `toml:"memory_limit"` // should be a multiple of 256 (MBytes)
@@ -106,7 +105,6 @@ type ManifestTOML struct {
 type Manifest struct {
 	Name        string
 	Description string
-	Internal    bool
 	Instances   uint
 	CPUShares   uint
 	MemoryLimit uint
@@ -128,7 +126,6 @@ func (m *Manifest) Dup() *Manifest {
 	return &Manifest{
 		Name:        m.Name,
 		Description: m.Description,
-		Internal:    m.Internal,
 		Instances:   m.Instances,
 		CPUShares:   m.CPUShares,
 		MemoryLimit: m.MemoryLimit,
@@ -164,7 +161,6 @@ func CreateManifest(mt *ManifestTOML) (*Manifest, error) {
 	return &Manifest{
 		Name:        mt.Name,
 		Description: mt.Description,
-		Internal:    mt.Internal,
 		Instances:   mt.Instances,
 		CPUShares:   mt.CPUShares,
 		MemoryLimit: mt.MemoryLimit,
