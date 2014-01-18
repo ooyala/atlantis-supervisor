@@ -102,6 +102,13 @@ type ManifestTOML struct {
 	DepNames    []string    `toml:"dependencies"`
 }
 
+type DepsType map[string]*AppDep
+type AppDep struct {
+	IPs           []string
+	DataMap       map[string]interface{}
+	EncryptedData string
+}
+
 type Manifest struct {
 	Name        string
 	Description string
@@ -111,7 +118,7 @@ type Manifest struct {
 	Image       string
 	AppType     string
 	RunCommands []string
-	Deps        map[string]string
+	Deps        DepsType
 }
 
 func (m *Manifest) Dup() *Manifest {
@@ -119,9 +126,19 @@ func (m *Manifest) Dup() *Manifest {
 	for i, cmd := range m.RunCommands {
 		runCommands[i] = cmd
 	}
-	deps := map[string]string{}
+	deps := DepsType{}
 	for key, val := range m.Deps {
-		deps[key] = val
+		deps[key] = &AppDep{
+			IPs:     make([]string, len(val.IPs)),
+			DataMap: map[string]interface{}{},
+		}
+		for i, ip := range val.IPs {
+			deps[key].IPs[i] = ip
+		}
+		for innerKey, innerVal := range val.DataMap {
+			deps[key].DataMap[innerKey] = innerVal
+		}
+		deps[key].EncryptedData = val.EncryptedData
 	}
 	return &Manifest{
 		Name:        m.Name,
@@ -137,9 +154,9 @@ func (m *Manifest) Dup() *Manifest {
 }
 
 func CreateManifest(mt *ManifestTOML) (*Manifest, error) {
-	deps := map[string]string{}
+	deps := DepsType{}
 	for _, name := range mt.DepNames {
-		deps[name] = "" // set it here so we can check for it in DepNames()
+		deps[name] = &AppDep{} // set it here so we can check for it in DepNames()
 	}
 	var cmds []string
 	switch runCommand := mt.RunCommand.(type) {
