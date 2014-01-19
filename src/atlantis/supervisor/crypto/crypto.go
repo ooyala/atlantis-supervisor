@@ -22,12 +22,15 @@ func EncryptAppDep(data *types.AppDep) error {
 
 func DecryptAppDep(data *types.AppDep) error {
 	// decrypt Data to DataMap
+	var err error
+	data.DataMap, err = DecryptedAppDepData(data)
+	return err
+}
+
+func DecryptedAppDepData(data *types.AppDep) (map[string]interface{}, error) {
 	// decrypt Data
 	decryptedBytes := crypto.Decrypt([]byte(data.EncryptedData))
-	data.DataMap = map[string]interface{}{}
-	// Unmarshal JSON to DataMap
-	if err := json.Unmarshal(decryptedBytes, &data.DataMap); err != nil {
-		return err
-	}
-	return nil
+	dataMap := map[string]interface{}{}
+	// Unmarshal JSON
+	return dataMap, json.Unmarshal(decryptedBytes, &data.DataMap)
 }

@@ -1,11 +1,37 @@
 package docker
 
 import (
-	"atlantis/crypto"
+	. "atlantis/supervisor/constant"
+	"atlantis/supervisor/crypto"
+	"atlantis/supervisor/helper"
 	"atlantis/supervisor/rpc/types"
+	atypes "atlantis/types"
 	"fmt"
 	"github.com/jigish/go-dockerclient"
 )
+
+func ContainerAppCfgs(c *types.Container) (*atypes.AppConfig, error) {
+	var err error
+	deps := map[string]map[string]interface{}{}
+	if c.Manifest.Deps != nil {
+		for name, appDep := range c.Manifest.Deps {
+			deps[name], err = crypto.DecryptedAppDepData(appDep)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return &atypes.AppConfig{
+		HTTPPort:       c.PrimaryPort,
+		SecondaryPorts: c.SecondaryPorts,
+		Container: &atypes.ContainerConfig{
+			ID:   c.ID,
+			Host: c.Host,
+			Env:  c.Env,
+		},
+		Dependencies: deps,
+	}, nil
+}
 
 func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig) {
 	// get env cfg
@@ -16,11 +42,6 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		fmt.Sprintf("CONTAINER_ENV=%s", c.Env),
 		fmt.Sprintf("HTTP_PORT=%d", c.PrimaryPort),
 		fmt.Sprintf("SSHD_PORT=%d", c.SSHPort),
-	}
-	if c.Manifest.Deps != nil {
-		for name, value := range c.Manifest.Deps {
-			envs = append(envs, fmt.Sprintf("%s=%s", name, crypto.Decrypt([]byte(value))))
-		}
 	}
 
 	// get port cfg
@@ -60,11 +81,17 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		Env:          envs,
 		Cmd:          []string{}, // images already specify run command
 		Image:        fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.App, c.Sha),
-		Volumes:      map[string]struct{}{"/var/log/atlantis/syslog": struct{}{}},
+		Volumes: map[string]struct{}{
+			ContainerLogDir:    struct{}{},
+			ContainerConfigDir: struct{}{},
+		},
 	}
 	dHostCfg := &docker.HostConfig{
 		PortBindings: portBindings,
-		Binds:        []string{fmt.Sprintf("/var/log/atlantis/containers/%s:/var/log/atlantis/syslog", c.ID)},
+		Binds: []string{
+			fmt.Sprintf("%s:%s", helper.HostLogDir(c.ID), ContainerLogDir),
+			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), ContainerConfigDir),
+		},
 		// call veth something we can actually look up later:
 		LxcConf: []docker.KeyValuePair{
 			docker.KeyValuePair{

@@ -1,7 +1,10 @@
 package docker
 
 import (
+	"atlantis/supervisor/helper"
 	"atlantis/supervisor/rpc/types"
+	atypes "atlantis/types"
+	"errors"
 	"fmt"
 	"github.com/jigish/go-dockerclient"
 	"log"
@@ -94,6 +97,15 @@ func DockerCfgs(c types.GenericContainer) (*docker.Config, *docker.HostConfig) {
 	}
 }
 
+func AppCfgs(c types.GenericContainer) (*atypes.AppConfig, error) {
+	switch typedC := c.(type) {
+	case *types.Container:
+		return ContainerAppCfgs(typedC)
+	default:
+		return nil, errors.New("could not fetch app configs")
+	}
+}
+
 func Deploy(c types.GenericContainer) error {
 	dRepo := fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.GetApp(), c.GetSha())
 	// Pull docker container
@@ -113,8 +125,23 @@ func Deploy(c types.GenericContainer) error {
 			return err
 		}
 
-		err = os.MkdirAll(fmt.Sprintf("/var/log/atlantis/containers/%s", c.GetID()), 0755)
+		// make log dir for volume
+		err = os.MkdirAll(helper.HostLogDir(c.GetID()), 0755)
 		if err != nil {
+			return err
+		}
+		// make config dir for volume
+		err = os.MkdirAll(helper.HostConfigDir(c.GetID()), 0755)
+		if err != nil {
+			return err
+		}
+		// put config in config dir
+		appCfg, err := AppCfgs(c)
+		if err != nil {
+			return err
+		}
+		if err := appCfg.Save(helper.HostConfigFile(c.GetID())); err != nil {
+			RemoveConfigDir(c)
 			return err
 		}
 
@@ -125,6 +152,7 @@ func Deploy(c types.GenericContainer) error {
 		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.GetID()}, dCfg)
 		dockerLock.Unlock()
 		if err != nil {
+			RemoveConfigDir(c)
 			return err
 		}
 		c.SetDockerID(dCont.ID)
@@ -135,10 +163,15 @@ func Deploy(c types.GenericContainer) error {
 		err = dockerClient.StartContainer(c.GetDockerID(), dHostCfg)
 		dockerLock.Unlock()
 		if err != nil {
+			RemoveConfigDir(c)
 			return err
 		}
 	}
 	return nil
+}
+
+func RemoveConfigDir(c types.GenericContainer) error {
+	return os.RemoveAll(helper.HostConfigDir(c.GetID()))
 }
 
 // Teardown the container. This will kill the docker container but will not free the ports/containers
@@ -157,5 +190,6 @@ func Teardown(c types.GenericContainer) error {
 		log.Printf("failed to teardown %s: %v", c.GetID(), err)
 		return err
 	}
-	return nil
+	// TODO do something with log dir
+	return RemoveConfigDir(c)
 }

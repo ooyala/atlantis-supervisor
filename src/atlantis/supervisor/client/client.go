@@ -4,11 +4,13 @@ import (
 	. "atlantis/common"
 	. "atlantis/supervisor/constant"
 	. "atlantis/supervisor/rpc/types"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
 	"log"
+	"os"
 	"time"
 )
 
@@ -122,14 +124,14 @@ func (c *ListCommand) Execute(args []string) error {
 }
 
 type DeployCommand struct {
-	Host        string            `short:"H" long:"host" description:"the host we're deploying on"`
-	App         string            `short:"a" long:"app" description:"the app to deploy"`
-	Sha         string            `short:"s" long:"sha" description:"the sha to deploy"`
-	Env         string            `short:"e" long:"env" description:"the env to deploy"`
-	Container   string            `short:"c" long:"container" description:"the container id to deploy"`
-	CPUShares   uint              `short:"C" long:"cpu-shares" description:"the number of cpu shares to use"`
-	MemoryLimit uint              `short:"m" long:"memory-limit" description:"the MBytes of memory to use"`
-	Deps        map[string]string `short:"d" long:"dep" description:"specify a service dependency"`
+	Host        string `short:"H" long:"host" description:"the host we're deploying on"`
+	App         string `short:"a" long:"app" description:"the app to deploy"`
+	Sha         string `short:"s" long:"sha" description:"the sha to deploy"`
+	Env         string `short:"e" long:"env" description:"the env to deploy"`
+	Container   string `short:"c" long:"container" description:"the container id to deploy"`
+	CPUShares   uint   `short:"C" long:"cpu-shares" description:"the number of cpu shares to use"`
+	MemoryLimit uint   `short:"m" long:"memory-limit" description:"the MBytes of memory to use"`
+	DepsFile    string `short:"d" long:"deps-file" description:"specify a file with dependencies"`
 }
 
 func (c *DeployCommand) Execute(args []string) error {
@@ -143,9 +145,20 @@ func (c *DeployCommand) Execute(args []string) error {
 	if c.Container == "" {
 		c.Container = fmt.Sprintf("%s-%s-%s-%d", c.App, c.Sha, config.Host, time.Now().Unix())
 	}
+	deps := DepsType{}
+	if c.DepsFile != "" {
+		df, err := os.Open(c.DepsFile)
+		if err != nil {
+			return err
+		}
+		dec := json.NewDecoder(df)
+		if err := dec.Decode(&deps); err != nil {
+			return err
+		}
+	}
 	log.Printf("Supervisor Deploy %s @ %s -> %s...", c.App, c.Sha, c.Container)
 	manifest := &Manifest{}
-	manifest.Deps = c.Deps
+	manifest.Deps = deps
 	manifest.CPUShares = c.CPUShares
 	manifest.MemoryLimit = c.MemoryLimit
 	log.Printf("-> Dependencies: %#v", manifest.Deps)
