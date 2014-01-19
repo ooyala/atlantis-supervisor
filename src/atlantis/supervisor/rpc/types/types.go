@@ -104,7 +104,7 @@ type ManifestTOML struct {
 
 type DepsType map[string]*AppDep
 type AppDep struct {
-	IPs           []string
+	SecurityGroup []string
 	DataMap       map[string]interface{}
 	EncryptedData string
 }
@@ -129,11 +129,11 @@ func (m *Manifest) Dup() *Manifest {
 	deps := DepsType{}
 	for key, val := range m.Deps {
 		deps[key] = &AppDep{
-			IPs:     make([]string, len(val.IPs)),
-			DataMap: map[string]interface{}{},
+			SecurityGroup: make([]string, len(val.SecurityGroup)),
+			DataMap:       map[string]interface{}{},
 		}
-		for i, ip := range val.IPs {
-			deps[key].IPs[i] = ip
+		for i, ipAndPort := range val.SecurityGroup {
+			deps[key].SecurityGroup[i] = ipAndPort
 		}
 		for innerKey, innerVal := range val.DataMap {
 			deps[key].DataMap[innerKey] = innerVal
