@@ -32,5 +32,5 @@ func DecryptedAppDepData(data *types.AppDep) (map[string]interface{}, error) {
 	decryptedBytes := crypto.Decrypt([]byte(data.EncryptedData))
 	dataMap := map[string]interface{}{}
 	// Unmarshal JSON
-	return dataMap, json.Unmarshal(decryptedBytes, &data.DataMap)
+	return dataMap, json.Unmarshal(decryptedBytes, &dataMap)
 }
