@@ -82,15 +82,15 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		Cmd:          []string{}, // images already specify run command
 		Image:        fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.App, c.Sha),
 		Volumes: map[string]struct{}{
-			ContainerLogDir:    struct{}{},
-			ContainerConfigDir: struct{}{},
+			ContainerLogDir:           struct{}{},
+			atypes.ContainerConfigDir: struct{}{},
 		},
 	}
 	dHostCfg := &docker.HostConfig{
 		PortBindings: portBindings,
 		Binds: []string{
 			fmt.Sprintf("%s:%s", helper.HostLogDir(c.ID), ContainerLogDir),
-			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), ContainerConfigDir),
+			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), atypes.ContainerConfigDir),
 		},
 		// call veth something we can actually look up later:
 		LxcConf: []docker.KeyValuePair{

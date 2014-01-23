@@ -19,5 +19,4 @@ const (
 	DefaultMaintenanceFile          = "/etc/atlantis/supervisor/maint"
 	DefaultMaintenanceCheckInterval = "5s"
 	ContainerLogDir                 = "/var/log/atlantis/syslog"
-	ContainerConfigDir              = "/etc/atlantis/config"
 )
