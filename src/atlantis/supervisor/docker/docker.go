@@ -202,13 +202,6 @@ func Teardown(c types.GenericContainer) error {
 		log.Printf("failed to teardown[kill] %s: %v", c.GetID(), err)
 		return err
 	}
-	dockerLock.Lock()
-	err = dockerClient.RemoveContainer(c.GetDockerID())
-	dockerLock.Unlock()
-	if err != nil {
-		log.Printf("failed to teardown[rm] %s: %v", c.GetID(), err)
-		return err
-	}
 	// TODO do something with log dir
 	return RemoveConfigDir(c)
 }
