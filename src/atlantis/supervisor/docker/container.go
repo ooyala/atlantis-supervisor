@@ -83,7 +83,12 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		MemorySwap:   int64(-1),                                        // -1 turns swap off
 		ExposedPorts: exposedPorts,
 		Env:          envs,
-		Cmd:          []string{}, // images already specify run command
+		Cmd:          []string{
+			"/bin/sh",
+			"-c",
+			"runsvdir",
+			"/etc/service",
+		},
 		Image:        fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.App, c.Sha),
 		Volumes: map[string]struct{}{
 			ContainerLogDir:           struct{}{},
