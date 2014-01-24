@@ -163,7 +163,16 @@ func Deploy(c types.GenericContainer) error {
 		dockerLock.Unlock()
 		if err != nil {
 			log.Printf("[%s] ERROR: failed to start container: %s", c.GetID(), err.Error())
-			log.Printf("[%s] -- full create response:\n%+v", c.GetID(), err.Error(), dCont)
+			log.Printf("[%s] -- full create response:\n%+v", c.GetID(), dCont)
+			log.Printf("[%s] inspecting container for more information...", c.GetID())
+			dockerLock.Lock()
+			inspCont, ierr := dockerClient.InspectContainer(c.GetDockerID())
+			dockerLock.Unlock()
+			if ierr != nil {
+				log.Printf("[%s] ERROR: failed to inspect container: %s", c.GetID(), ierr.Error())
+				return ierr
+			}
+			log.Printf("[%s] -- inspected container:\n%+v", c.GetID(), inspCont)
 			return err
 		}
 
