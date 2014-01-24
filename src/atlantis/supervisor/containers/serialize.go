@@ -41,5 +41,9 @@ func retrieveObject(file string, object interface{}) bool {
 	d := gob.NewDecoder(r)
 	d.Decode(object)
 	log.Printf("Retrieved %s: %#v", file, object)
+	if object == nil {
+		log.Println("Object retrieved was nil.")
+		return false
+	}
 	return true
 }
