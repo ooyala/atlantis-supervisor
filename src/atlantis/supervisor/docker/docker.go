@@ -6,7 +6,7 @@ import (
 	atypes "atlantis/types"
 	"errors"
 	"fmt"
-	"github.com/jigish/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 	"log"
 	"os"
 	"regexp"

@@ -7,8 +7,12 @@ import (
 	"atlantis/supervisor/rpc/types"
 	atypes "atlantis/types"
 	"fmt"
-	"github.com/jigish/go-dockerclient"
+	"github.com/fsouza/go-dockerclient"
 )
+
+func NewDockerPort(port, proto string) docker.Port {
+	return docker.Port(fmt.Sprintf("%s/%s", port, proto))
+}
 
 func ContainerAppCfgs(c *types.Container) (*atypes.AppConfig, error) {
 	var err error
@@ -48,14 +52,14 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 	exposedPorts := map[docker.Port]struct{}{}
 	portBindings := map[docker.Port][]docker.PortBinding{}
 	sPrimaryPort := fmt.Sprintf("%d", c.PrimaryPort)
-	dPrimaryPort := docker.NewPort("tcp", sPrimaryPort)
+	dPrimaryPort := NewDockerPort(sPrimaryPort, "tcp")
 	exposedPorts[dPrimaryPort] = struct{}{}
 	portBindings[dPrimaryPort] = []docker.PortBinding{docker.PortBinding{
 		HostIp:   "",
 		HostPort: sPrimaryPort,
 	}}
 	sSSHPort := fmt.Sprintf("%d", c.SSHPort)
-	dSSHPort := docker.NewPort("tcp", sSSHPort)
+	dSSHPort := NewDockerPort(sSSHPort, "tcp")
 	exposedPorts[dSSHPort] = struct{}{}
 	portBindings[dSSHPort] = []docker.PortBinding{docker.PortBinding{
 		HostIp:   "",
@@ -63,7 +67,7 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 	}}
 	for i, port := range c.SecondaryPorts {
 		sPort := fmt.Sprintf("%d", port)
-		dPort := docker.NewPort("tcp", sPort)
+		dPort := NewDockerPort(sPort, "tcp")
 		exposedPorts[dPort] = struct{}{}
 		portBindings[dPort] = []docker.PortBinding{docker.PortBinding{
 			HostIp:   "",
