@@ -15,7 +15,7 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 	c.App = app
 	c.Sha = sha
 	c.Env = env
-	err := docker.Deploy(c)
+	err := docker.Deploy(&c.Container)
 	if err != nil {
 		return err
 	}
