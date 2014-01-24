@@ -110,13 +110,13 @@ func Deploy(c types.GenericContainer) error {
 	dRepo := fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.GetApp(), c.GetSha())
 	// Pull docker container
 	if pretending() {
-		log.Printf("[pretend] deploy %s with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
-		log.Printf("[pretend] docker pull %s", dRepo)
-		log.Printf("[pretend] docker run %s", dRepo)
+		log.Printf("[%s][pretend] deploy with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
+		log.Printf("[%s][pretend] docker pull %s", c.GetID(), dRepo)
+		log.Printf("[%s][pretend] docker run %s", c.GetID(), dRepo)
 		c.SetDockerID(fmt.Sprintf("pretend-docker-id-%s", c.GetID()))
 	} else {
-		log.Printf("deploy %s with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
-		log.Printf("docker pull %s", dRepo)
+		log.Printf("[%s] deploy with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
+		log.Printf("[%s] docker pull %s", c.GetID(), dRepo)
 		dockerLock.Lock()
 		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo},
 			os.Stdout)
@@ -145,14 +145,14 @@ func Deploy(c types.GenericContainer) error {
 			return err
 		}
 
-		log.Printf("docker run %s", dRepo)
+		log.Printf("[%s] docker run %s", c.GetID(), dRepo)
 		// create docker container
 		dCfg, dHostCfg := DockerCfgs(c)
 		dockerLock.Lock()
 		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.GetID()}, dCfg)
 		dockerLock.Unlock()
 		if err != nil {
-			RemoveConfigDir(c)
+			log.Printf("[%s] ERROR: failed to create container: %s", c.GetID(), err.Error())
 			return err
 		}
 		c.SetDockerID(dCont.ID)
@@ -162,7 +162,8 @@ func Deploy(c types.GenericContainer) error {
 		err = dockerClient.StartContainer(c.GetDockerID(), dHostCfg)
 		dockerLock.Unlock()
 		if err != nil {
-			RemoveConfigDir(c)
+			log.Printf("[%s] ERROR: failed to start container: %s", c.GetID(), err.Error())
+			log.Printf("[%s] -- full create response:\n%+v", c.GetID(), err.Error(), dCont)
 			return err
 		}
 
@@ -170,11 +171,11 @@ func Deploy(c types.GenericContainer) error {
 		inspCont, err := dockerClient.InspectContainer(c.GetDockerID())
 		dockerLock.Unlock()
 		if err != nil {
-			Teardown(c)
+			log.Printf("[%s] ERROR: failed to inspect container: %s", c.GetID(), err.Error())
 			return err
 		}
 		if inspCont.NetworkSettings == nil {
-			Teardown(c)
+				log.Printf("[%s] ERROR: failed to get container network settings.")
 			return errors.New("Could not get NetworkSettings from docker")
 		}
 		c.SetIP(dCont.NetworkSettings.IPAddress)
