@@ -170,11 +170,11 @@ func Deploy(c types.GenericContainer) error {
 		inspCont, err := dockerClient.InspectContainer(c.GetDockerID())
 		dockerLock.Unlock()
 		if err != nil {
-			RemoveConfigDir(c)
+			Teardown(c)
 			return err
 		}
 		if inspCont.NetworkSettings == nil {
-			RemoveConfigDir(c)
+			Teardown(c)
 			return errors.New("Could not get NetworkSettings from docker")
 		}
 		c.SetIP(dCont.NetworkSettings.IPAddress)
@@ -199,7 +199,14 @@ func Teardown(c types.GenericContainer) error {
 	err := dockerClient.KillContainer(c.GetDockerID())
 	dockerLock.Unlock()
 	if err != nil {
-		log.Printf("failed to teardown %s: %v", c.GetID(), err)
+		log.Printf("failed to teardown[kill] %s: %v", c.GetID(), err)
+		return err
+	}
+	dockerLock.Lock()
+	err = dockerClient.RemoveContainer(c.GetDockerID())
+	dockerLock.Unlock()
+	if err != nil {
+		log.Printf("failed to teardown[rm] %s: %v", c.GetID(), err)
 		return err
 	}
 	// TODO do something with log dir
