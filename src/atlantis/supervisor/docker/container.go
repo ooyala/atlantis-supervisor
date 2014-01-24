@@ -84,8 +84,6 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		ExposedPorts: exposedPorts,
 		Env:          envs,
 		Cmd:          []string{
-			"/bin/sh",
-			"-c",
 			"runsvdir",
 			"/etc/service",
 		},
