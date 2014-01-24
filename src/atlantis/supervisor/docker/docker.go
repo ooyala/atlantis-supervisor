@@ -156,7 +156,6 @@ func Deploy(c types.GenericContainer) error {
 			return err
 		}
 		c.SetDockerID(dCont.ID)
-		c.SetIP(dCont.NetworkSettings.IPAddress)
 
 		// start docker container
 		dockerLock.Lock()
@@ -166,6 +165,19 @@ func Deploy(c types.GenericContainer) error {
 			RemoveConfigDir(c)
 			return err
 		}
+
+		dockerLock.Lock()
+		inspCont, err := dockerClient.InspectContainer(c.GetDockerID())
+		dockerLock.Unlock()
+		if err != nil {
+			RemoveConfigDir(c)
+			return err
+		}
+		if inspCont.NetworkSettings == nil {
+			RemoveConfigDir(c)
+			return errors.New("Could not get NetworkSettings from docker")
+		}
+		c.SetIP(dCont.NetworkSettings.IPAddress)
 	}
 	return nil
 }
