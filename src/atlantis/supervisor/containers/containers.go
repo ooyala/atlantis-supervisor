@@ -223,14 +223,16 @@ func nums(respChan chan *NumsResp) {
 }
 
 func containerManager() {
-	if !retrieveObject(ContainersFile, &containers) {
+	if !retrieveObject(ContainersFile, &containers) || containers == nil {
 		containers = map[string]*Container{}
+		log.Printf("-> using default container map: %+v", containers)
 	}
-	if !retrieveObject(PortsFile, &ports) {
+	if !retrieveObject(PortsFile, &ports) || ports == nil {
 		ports = make([]uint16, NumContainers)
 		for i := uint16(0); i < NumContainers; i++ {
 			ports[i] = i
 		}
+		log.Printf("-> using default port list: %+v", ports)
 	}
 	usedCPUShares = 0
 	usedMemoryLimit = 0
