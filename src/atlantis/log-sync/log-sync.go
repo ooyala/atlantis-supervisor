@@ -1,4 +1,4 @@
-package log_sync
+package logsync
 
 import (
 	"crypto/md5"
