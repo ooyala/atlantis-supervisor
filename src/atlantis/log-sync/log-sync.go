@@ -1,9 +1,8 @@
-package log-sync
+package log_sync
 
 import (
 	"crypto/md5"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/s3"
