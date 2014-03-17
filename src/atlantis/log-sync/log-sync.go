@@ -188,4 +188,3 @@ func (s *SyncT) Sync() error {
 
 	return s.syncLogs(srcLogs, destLogs)
 }
-
