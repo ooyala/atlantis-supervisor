@@ -29,5 +29,5 @@ const (
 	DefaultResultDuration           = "30m"
 	DefaultMaintenanceFile          = "/etc/atlantis/supervisor/maint"
 	DefaultMaintenanceCheckInterval = "5s"
-	ContainerLogDir                 = "/var/log/atlantis"
+	ContainerLogDir                 = "/var/log/atlantis/syslog"
 )
