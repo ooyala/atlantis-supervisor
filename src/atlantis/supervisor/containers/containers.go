@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os/exec"
 )
 
 const (
@@ -283,4 +284,8 @@ func save() {
 		PortsFile,
 		ports,
 	})
+}
+
+func inventory() {
+	exec.Command("cmk_admin", "-I")
 }

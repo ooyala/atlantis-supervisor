@@ -34,7 +34,8 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 	// sudo iptables -A PREROUTING -t mangle -m physdev --physdev-in veth<container> -j MARK --set-mark <container mark>
 	// sudo iptables -I FORWARD -p tcp <match destination ip of router and destination ports that we want> -j ACCEPT
 	// iptables to kill all traffic out of the container
-	save() // save here because this is when we know the deployed container is actually alive
+	save()      // save here because this is when we know the deployed container is actually alive
+	inventory() // now that the container is up and we've saved it, inventory check_mk
 	return nil
 }
 
