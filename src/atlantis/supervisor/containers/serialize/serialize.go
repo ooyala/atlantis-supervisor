@@ -13,7 +13,6 @@ package serialize
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path"
 )
@@ -41,36 +40,28 @@ func SaveAll(defs ...SaveDefinition) {
 }
 
 // Use json to save an object to a file
-func SaveObject(file string, object interface{}) {
+func SaveObject(file string, object interface{}) error {
 	fo, err := os.Create(path.Join(SaveDir, file))
 	if err != nil {
-		log.Printf("Could not save %s: %s", file, err)
-		// hope everything works out.
-		// TODO[jigish] email error
-		return
+		return err
 	}
 	defer fo.Close()
 	e := json.NewEncoder(fo)
 	if err := e.Encode(object); err != nil {
-		log.Println("ERROR: cannot save object " + file + ": " + err.Error())
+		return err
 	}
+	return nil
 }
 
 // Use json to retrieve an object from a file
-func RetrieveObject(file string, object interface{}) bool {
+func RetrieveObject(file string, object interface{}) error {
 	fi, err := os.Open(path.Join(SaveDir, file))
 	if err != nil {
-		log.Printf("Could not retrieve %s: %s", file, err)
-		return false
+		return err
 	}
 	d := json.NewDecoder(fi)
 	if err := d.Decode(object); err != nil {
-		log.Println("ERROR: could not retrieve object " + file + ": " + err.Error())
+		return err
 	}
-	log.Printf("Retrieved %s: %#v", file, object)
-	if object == nil {
-		log.Println("Object retrieved was nil.")
-		return false
-	}
-	return true
+	return nil
 }

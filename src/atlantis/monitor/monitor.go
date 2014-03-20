@@ -12,7 +12,7 @@
 package monitor
 
 import (
-	"atlantis/supervisor/containers"
+	"atlantis/supervisor/containers/serialize"
 	"atlantis/supervisor/rpc/types"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -195,7 +195,10 @@ func overlayConfig() {
 func Run() {
 	overlayConfig()
 	var contMap map[string]*types.Container
-	if !containers.RetrieveObject(config.ContainerFile, config.CheckName, &contMap) {
+	if err := serialize.RetrieveObject(config.ContainerFile, &contMap); err == nil {
+		fmt.Printf("%d %s - Able to open %s\n", OK, config.CheckName, config.ContainerFile)
+	} else {
+		fmt.Printf("%d %s - Could not retrieve %s: %s\n", Critical, config.CheckName, config.ContainerFile, err)
 		return
 	}
 	done := make(chan bool, len(contMap))
