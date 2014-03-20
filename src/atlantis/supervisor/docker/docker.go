@@ -195,7 +195,7 @@ func Deploy(c types.GenericContainer) error {
 			return err
 		}
 		if inspCont.NetworkSettings == nil {
-				log.Printf("[%s] ERROR: failed to get container network settings.")
+			log.Printf("[%s] ERROR: failed to get container network settings.")
 			return errors.New("Could not get NetworkSettings from docker")
 		}
 		c.SetIP(inspCont.NetworkSettings.IPAddress)

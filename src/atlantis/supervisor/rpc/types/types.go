@@ -12,10 +12,9 @@
 package types
 
 import (
+	"atlantis/builder/manifest"
 	"errors"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"io"
 	"strings"
 )
 
@@ -100,19 +99,6 @@ Docker ID       : %s`, c.ID, c.IP, c.Host, c.PrimaryPort, c.SSHPort, c.Secondary
 		c.Manifest.CPUShares, c.Manifest.MemoryLimit, c.DockerID)
 }
 
-// NOTE[jigish]: ONLY for TOML parsing
-type ManifestTOML struct {
-	Name        string
-	Description string
-	Instances   uint
-	CPUShares   uint `toml:"cpu_shares"`   // should be 1 or any multiple of 5
-	MemoryLimit uint `toml:"memory_limit"` // should be a multiple of 256 (MBytes)
-	Image       string
-	AppType     string      `toml:"app_type"`
-	RunCommand  interface{} `toml:"run_command"` // can be string or array
-	DepNames    []string    `toml:"dependencies"`
-}
-
 type DepsType map[string]*AppDep
 type AppDep struct {
 	SecurityGroup []string
@@ -126,8 +112,8 @@ type Manifest struct {
 	Instances   uint
 	CPUShares   uint
 	MemoryLimit uint
-	Image       string
 	AppType     string
+	JavaType    string
 	RunCommands []string
 	Deps        DepsType
 }
@@ -157,43 +143,50 @@ func (m *Manifest) Dup() *Manifest {
 		Instances:   m.Instances,
 		CPUShares:   m.CPUShares,
 		MemoryLimit: m.MemoryLimit,
-		Image:       m.Image,
 		AppType:     m.AppType,
+		JavaType:    m.JavaType,
 		RunCommands: runCommands,
 		Deps:        deps,
 	}
 }
 
-func CreateManifest(mt *ManifestTOML) (*Manifest, error) {
+func CreateManifest(mt *manifest.Data) (*Manifest, error) {
 	deps := DepsType{}
-	for _, name := range mt.DepNames {
+	for _, name := range mt.Dependencies {
 		deps[name] = &AppDep{} // set it here so we can check for it in DepNames()
 	}
 	var cmds []string
-	switch runCommand := mt.RunCommand.(type) {
-	case string:
-		cmds = []string{runCommand}
-	case []interface{}:
-		cmds = make([]string, 1, 1)
-		for _, cmd := range runCommand {
-			cmdStr, ok := cmd.(string)
-			if ok {
-				cmds = append(cmds, cmdStr)
-			} else {
-				return nil, errors.New("Invalid Manifest: non-string element in run_command array!")
-			}
+	if len(mt.RunCommands) > 0 {
+		cmds = make([]string, len(mt.RunCommands))
+		for i, cmd := range mt.RunCommands {
+			cmds[i] = cmd
 		}
-	default:
-		return nil, errors.New("Invalid Manifest: run_command should be string or []string")
+	} else {
+		switch runCommand := mt.RunCommand.(type) {
+		case string:
+			cmds = []string{runCommand}
+		case []interface{}:
+			cmds = []string{}
+			for _, cmd := range runCommand {
+				cmdStr, ok := cmd.(string)
+				if ok {
+					cmds = append(cmds, cmdStr)
+				} else {
+					return nil, errors.New("Invalid Manifest: non-string element in run_command array!")
+				}
+			}
+		default:
+			return nil, errors.New("Invalid Manifest: run_command should be string or []string")
+		}
 	}
 	return &Manifest{
 		Name:        mt.Name,
 		Description: mt.Description,
-		Instances:   mt.Instances,
+		Instances:   0,
 		CPUShares:   mt.CPUShares,
 		MemoryLimit: mt.MemoryLimit,
-		Image:       mt.Image,
 		AppType:     mt.AppType,
+		JavaType:    mt.JavaType,
 		RunCommands: cmds,
 		Deps:        deps,
 	}, nil
@@ -207,15 +200,6 @@ func (m *Manifest) DepNames() []string {
 		i++
 	}
 	return names
-}
-
-func ReadManifest(r io.Reader) (*Manifest, error) {
-	var manifestTOML ManifestTOML
-	_, err := toml.DecodeReader(r, &manifestTOML)
-	if err != nil {
-		return nil, errors.New("Parse Manifest Error: " + err.Error())
-	}
-	return CreateManifest(&manifestTOML)
 }
 
 // ----------------------------------------------------------------------------------------------------------
