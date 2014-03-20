@@ -287,5 +287,12 @@ func save() {
 }
 
 func inventory() {
-	exec.Command("cmk_admin", "-I")
+	log.Println("[CMK Inventory] Start")
+	cmd := exec.Command("cmk_admin", "-I")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("[CMK Inventory] ERROR: " + err.Error() + "\n" + string(output))
+	} else {
+		log.Println("[CMK Inventory] done:\n" + string(output))
+	}
 }
