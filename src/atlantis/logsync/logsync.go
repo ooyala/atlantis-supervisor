@@ -91,7 +91,7 @@ func (s *SyncT) loadSrc() map[string]string {
 			md5sum := fmt.Sprintf("%x", md5Hash.Sum(nil))
 			logs[path] = md5sum
 			if s.Debug {
-				fmt.Printf("Loading src: %s md5: %s", logPath, md5sum)
+				fmt.Printf("Loading src: %s md5: %s\n", logPath, md5sum)
 			}
 		}
 		return nil
@@ -114,7 +114,7 @@ func (s *SyncT) loadDest() (map[string]string, error) {
 		path := relativePath(s.Prefix, data.Contents[i].Key)
 		logs[path] = md5sum
 		if s.Debug {
-			fmt.Printf("Loading dest: %s md5: %s", data.Contents[i].Key, md5sum)
+			fmt.Printf("Loading dest: %s md5: %s\n", data.Contents[i].Key, md5sum)
 		}
 	}
 	return logs, nil
