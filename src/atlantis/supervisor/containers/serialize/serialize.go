@@ -9,7 +9,7 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-package containers
+package serialize
 
 import (
 	"encoding/json"
@@ -18,9 +18,26 @@ import (
 	"path"
 )
 
-func save() {
-	SaveObject(ContainersFile, containers)
-	SaveObject(PortsFile, ports)
+var SaveDir string
+
+func Init(saveDir string) error {
+	SaveDir = saveDir
+	err := os.MkdirAll(SaveDir, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type SaveDefinition struct {
+	File   string
+	Object interface{}
+}
+
+func SaveAll(defs ...SaveDefinition) {
+	for _, def := range defs {
+		SaveObject(def.File, def.Object)
+	}
 }
 
 // Use json to save an object to a file
