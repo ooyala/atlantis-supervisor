@@ -19,12 +19,12 @@ import (
 )
 
 func save() {
-	saveObject(ContainersFile, containers)
-	saveObject(PortsFile, ports)
+	SaveObject(ContainersFile, containers)
+	SaveObject(PortsFile, ports)
 }
 
 // Use json to save an object to a file
-func saveObject(file string, object interface{}) {
+func SaveObject(file string, object interface{}) {
 	fo, err := os.Create(path.Join(SaveDir, file))
 	if err != nil {
 		log.Printf("Could not save %s: %s", file, err)
@@ -40,7 +40,7 @@ func saveObject(file string, object interface{}) {
 }
 
 // Use json to retrieve an object from a file
-func retrieveObject(file string, object interface{}) bool {
+func RetrieveObject(file string, object interface{}) bool {
 	fi, err := os.Open(path.Join(SaveDir, file))
 	if err != nil {
 		log.Printf("Could not retrieve %s: %s", file, err)

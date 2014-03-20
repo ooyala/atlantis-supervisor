@@ -12,9 +12,8 @@
 package monitor
 
 import (
+	"atlantis/supervisor/containers"
 	"atlantis/supervisor/rpc/types"
-	"bufio"
-	"encoding/gob"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
@@ -163,20 +162,6 @@ func silentSshCmd(user, identity, host, cmd string, port uint16) *exec.Cmd {
 	return exec.Command("ssh", args...)
 }
 
-// Use gob to retrieve an object from a file
-func retrieveObject(file, name string, object interface{}) bool {
-	fi, err := os.Open(file)
-	if err != nil {
-		fmt.Printf("%d %s - Could not retrieve %s: %s\n", Critical, name, file, err)
-		return false
-	}
-	fmt.Printf("%d %s - Able to open %s\n", OK, name, file)
-	r := bufio.NewReader(fi)
-	d := gob.NewDecoder(r)
-	d.Decode(object)
-	return true
-}
-
 func overlayConfig() {
 	opts := &Opts{}
 	flags.Parse(opts)
@@ -209,20 +194,20 @@ func overlayConfig() {
 //file containing containers and service name to show in Nagios for the monitor itself
 func Run() {
 	overlayConfig()
-	var containers map[string]*types.Container
-	if !retrieveObject(config.ContainerFile, config.CheckName, &containers) {
+	var contMap map[string]*types.Container
+	if !containers.RetrieveObject(config.ContainerFile, config.CheckName, &contMap) {
 		return
 	}
-	done := make(chan bool, len(containers))
+	done := make(chan bool, len(contMap))
 	config.SSHIdentity = strings.Replace(config.SSHIdentity, "~", os.Getenv("HOME"), 1)
-	for _, c := range containers {
+	for _, c := range contMap {
 		if c.Host == "" {
 			c.Host = "localhost"
 		}
 		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
-	for _ = range containers {
+	for _ = range contMap {
 		<-done
 	}
 }
