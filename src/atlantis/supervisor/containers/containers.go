@@ -230,11 +230,11 @@ func nums(respChan chan *NumsResp) {
 }
 
 func containerManager() {
-	if !serialize.RetrieveObject(ContainersFile, &containers) || containers == nil {
+	if err := serialize.RetrieveObject(ContainersFile, &containers); err != nil || containers == nil {
 		containers = map[string]*Container{}
 		log.Printf("-> using default container map: %+v", containers)
 	}
-	if !serialize.RetrieveObject(PortsFile, &ports) || ports == nil {
+	if err := serialize.RetrieveObject(PortsFile, &ports); err != nil || ports == nil {
 		ports = make([]uint16, NumContainers)
 		for i := uint16(0); i < NumContainers; i++ {
 			ports[i] = i
