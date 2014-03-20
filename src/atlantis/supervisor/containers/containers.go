@@ -191,6 +191,7 @@ func teardown(req *TeardownReq) {
 		usedCPUShares = usedCPUShares - containers[req.id].Manifest.CPUShares
 		delete(containers, req.id)
 		save()
+		inventory()
 		req.respChan <- true
 	} else {
 		req.respChan <- false
