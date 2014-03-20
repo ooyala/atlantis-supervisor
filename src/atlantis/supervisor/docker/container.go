@@ -110,13 +110,18 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 			fmt.Sprintf("%s:%s", helper.HostLogDir(c.ID), ContainerLogDir),
 			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), atypes.ContainerConfigDir),
 		},
-		// call veth something we can actually look up later:
-		LxcConf: []docker.KeyValuePair{
-			docker.KeyValuePair{
-				Key:   "lxc.network.veth.pair",
-				Value: "veth" + c.RandomID(),
-			},
-		},
+
+// We added this so that we could reference the veth after it was created. However, docker no longer
+// uses lxc as the default driver (and neither do we) disable this configuration for now, investigate
+// later.
+
+//			LxcConf: []docker.KeyValuePair{
+//				docker.KeyValuePair{
+//					Key:   "lxc.network.veth.pair",
+//					Value: "veth" + c.RandomID(),
+//				},
+//			},
+
 	}
 	return dCfg, dHostCfg
 }
