@@ -89,6 +89,8 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 
 	// setup actual cfg
 	dCfg := &docker.Config{
+		Tty:          true, // allocate pseudo-tty
+		OpenStdin:    true, // keep stdin open even if we're not attached
 		CpuShares:    int64(c.Manifest.CPUShares),
 		Memory:       int64(c.Manifest.MemoryLimit) * int64(1024*1024), // this is in bytes
 		MemorySwap:   int64(-1),                                        // -1 turns swap off
