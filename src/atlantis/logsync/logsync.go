@@ -144,16 +144,22 @@ func putLog(log transfer, bucket *s3.Bucket, dry bool) {
 	}
 }
 
-func syncFile(log transfer, bucket *s3.Bucket, workerChan chan empty, dry bool) {
+func syncFile(log transfer, bucket *s3.Bucket, workerChan chan empty, dry bool, debug bool) {
+	if debug {
+		fmt.Printf("Beginning to put log from %s to %s\n", log.Src, log.Dest)
+	}
 	putLog(log, bucket, dry)
 	<-workerChan
 }
 
-func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, dry bool) {
+func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, dry bool, debug bool) {
 	for {
 		select {
 		case file := <-fileChan:
-			go syncFile(file, bucket, workerChan, dry)
+			if debug {
+				fmt.Printf("Spawner received transfer request.\n")
+			}
+			go syncFile(file, bucket, workerChan, dry, debug)
 		case <-dieChan:
 			return
 		}
@@ -164,12 +170,15 @@ func (s *SyncT) syncLogs(src, dest map[string]string) error {
 	fileChan := make(chan transfer)
 	workerChan := make(chan empty, s.Threads)
 	dieChan := make(chan empty)
-	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, s.Dry)
+	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, s.Dry, s.Debug)
 
 	for log, _ := range src {
 		if dest[log] != src[log] {
 			srcPath := strings.Join([]string{s.Dir, log}, "/")
 			destPath := strings.Join([]string{s.Prefix, log}, "/")
+			if s.Debug {
+				fmt.Printf("Beginning transfer request of %s to %s\n", srcPath, destPath)
+			}
 			workerChan <- empty{}
 			fileChan <- transfer{srcPath, destPath}
 		}
