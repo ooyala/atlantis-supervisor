@@ -146,19 +146,15 @@ func putLog(log transfer, bucket *s3.Bucket, dry bool) {
 }
 
 func syncFile(log transfer, bucket *s3.Bucket, workerChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
+	defer wg.Done()
 	if debug {
 		fmt.Printf("Beginning to put log from %s to %s\n", log.Src, log.Dest)
 	}
 	putLog(log, bucket, dry)
 	<-workerChan
-	wg.Done()
-	if debug {
-		fmt.Printf("Sending done to WG...\n")
-	}
 }
 
-func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, doneChan chan empty, dry bool, debug bool) {
-	var wg sync.WaitGroup
+func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
 	for {
 		select {
 		case file := <-fileChan:
@@ -166,16 +162,11 @@ func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan em
 				fmt.Printf("Spawner received transfer request.\n")
 			}
 			wg.Add(1)
-			go syncFile(file, bucket, workerChan, &wg, dry, debug)
+			go syncFile(file, bucket, workerChan, wg, dry, debug)
 		case <-dieChan:
 			if debug {
-				fmt.Printf("Die received. Waiting for all workers to exit to return...\n")
+				fmt.Printf("Die received. Exiting worker spawner...\n")
 			}
-			wg.Wait()
-			if debug {
-				fmt.Printf("All workers exited. Sending done to main process...\n")
-			}
-			doneChan <- empty{}
 			return
 		}
 	}
@@ -185,8 +176,8 @@ func (s *SyncT) syncLogs(src, dest map[string]string) error {
 	fileChan := make(chan transfer)
 	workerChan := make(chan empty, s.Threads)
 	dieChan := make(chan empty)
-	doneChan := make(chan empty)
-	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, doneChan, s.Dry, s.Debug)
+	var wg sync.WaitGroup
+	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, &wg, s.Dry, s.Debug)
 	for log, _ := range src {
 		if dest[log] != src[log] {
 			srcPath := strings.Join([]string{s.Dir, log}, "/")
@@ -199,10 +190,13 @@ func (s *SyncT) syncLogs(src, dest map[string]string) error {
 		}
 	}
 	if s.Debug {
-		fmt.Printf("Sending files completed. Sending die to worker spawner...\n")
+		fmt.Printf("Sending files completed. Waiting for all workers to exit...\n")
+	}
+	wg.Wait()
+	if s.Debug {
+		fmt.Printf("Workers all completed. Sending die to worker spawner...\n")
 	}
 	dieChan <- empty{}
-	<-doneChan
 	if s.Debug {
 		fmt.Printf("Worker spawner dead. Exiting...\n")
 	}
