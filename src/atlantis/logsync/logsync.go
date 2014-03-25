@@ -7,6 +7,7 @@ import (
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/s3"
 	"io/ioutil"
+    "log"
 	"os"
 	"path/filepath"
 	"strings"
