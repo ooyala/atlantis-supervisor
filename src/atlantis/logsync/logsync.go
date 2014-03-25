@@ -7,7 +7,7 @@ import (
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/s3"
 	"io/ioutil"
-    "log"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -122,11 +122,11 @@ func (s *SyncT) loadDest() (map[string]string, error) {
 	return logs, nil
 }
 
-func putLog(log transfer, bucket *s3.Bucket, dry bool) {
-	data, err := ioutil.ReadFile(log.Src)
+func putLog(t transfer, bucket *s3.Bucket, dry bool) {
+	data, err := ioutil.ReadFile(t.Src)
 	if err != nil {
 		// Error reading log
-		log.Printf("Error reading source file %s:\n", log.Src)
+		log.Printf("Error reading source file %s:\n", t.Src)
 		panic(err.Error())
 	}
 
@@ -134,24 +134,24 @@ func putLog(log transfer, bucket *s3.Bucket, dry bool) {
 	perm := s3.ACL("private")
 
 	if dry {
-		log.Printf("Starting sync of %s to bucket path %s...\n", log.Src, log.Dest)
+		log.Printf("Starting sync of %s to bucket path %s...\n", t.Src, t.Dest)
 	} else {
-		log.Printf("Starting sync of %s to s3://%s/%s...\n", log.Src, bucket.Name, log.Dest)
-		err = bucket.Put(log.Dest, data, contType, perm, s3.Options{})
+		log.Printf("Starting sync of %s to s3://%s/%s...\n", t.Src, bucket.Name, t.Dest)
+		err = bucket.Put(t.Dest, data, contType, perm, s3.Options{})
 		if err != nil {
 			// Error uploading log to s3
-			log.Printf("Sync of %s to s3://%s/%s failed:\n", log.Src, bucket.Name, log.Dest)
+			log.Printf("Sync of %s to s3://%s/%s failed:\n", t.Src, bucket.Name, t.Dest)
 			panic(err.Error())
 		}
 	}
 }
 
-func syncFile(log transfer, bucket *s3.Bucket, workerChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
+func syncFile(t transfer, bucket *s3.Bucket, workerChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
 	defer wg.Done()
 	if debug {
-		log.Printf("Beginning to put log from %s to %s\n", log.Src, log.Dest)
+		log.Printf("Beginning to put log from %s to %s\n", t.Src, t.Dest)
 	}
-	putLog(log, bucket, dry)
+	putLog(t, bucket, dry)
 	<-workerChan
 }
 
@@ -179,10 +179,10 @@ func (s *SyncT) syncLogs(src, dest map[string]string) error {
 	dieChan := make(chan empty)
 	var wg sync.WaitGroup
 	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, &wg, s.Dry, s.Debug)
-	for log, _ := range src {
-		if dest[log] != src[log] {
-			srcPath := strings.Join([]string{s.Dir, log}, "/")
-			destPath := strings.Join([]string{s.Prefix, log}, "/")
+	for f, _ := range src {
+		if dest[f] != src[f] {
+			srcPath := strings.Join([]string{s.Dir, f}, "/")
+			destPath := strings.Join([]string{s.Prefix, f}, "/")
 			if s.Debug {
 				log.Printf("Beginning transfer request of %s to %s\n", srcPath, destPath)
 			}
