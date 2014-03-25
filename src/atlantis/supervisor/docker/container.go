@@ -89,16 +89,18 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 
 	// setup actual cfg
 	dCfg := &docker.Config{
+		Tty:          true, // allocate pseudo-tty
+		OpenStdin:    true, // keep stdin open even if we're not attached
 		CpuShares:    int64(c.Manifest.CPUShares),
 		Memory:       int64(c.Manifest.MemoryLimit) * int64(1024*1024), // this is in bytes
 		MemorySwap:   int64(-1),                                        // -1 turns swap off
 		ExposedPorts: exposedPorts,
 		Env:          envs,
-		Cmd:          []string{
+		Cmd: []string{
 			"runsvdir",
 			"/etc/service",
 		},
-		Image:        fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.App, c.Sha),
+		Image: fmt.Sprintf("%s/%s/%s-%s", RegistryHost, c.GetDockerRepo(), c.App, c.Sha),
 		Volumes: map[string]struct{}{
 			ContainerLogDir:           struct{}{},
 			atypes.ContainerConfigDir: struct{}{},
@@ -110,13 +112,18 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 			fmt.Sprintf("%s:%s", helper.HostLogDir(c.ID), ContainerLogDir),
 			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), atypes.ContainerConfigDir),
 		},
-		// call veth something we can actually look up later:
-		LxcConf: []docker.KeyValuePair{
-			docker.KeyValuePair{
-				Key:   "lxc.network.veth.pair",
-				Value: "veth" + c.RandomID(),
-			},
-		},
+
+		// We added this so that we could reference the veth after it was created. However, docker no longer
+		// uses lxc as the default driver (and neither do we) disable this configuration for now, investigate
+		// later.
+
+		//			LxcConf: []docker.KeyValuePair{
+		//				docker.KeyValuePair{
+		//					Key:   "lxc.network.veth.pair",
+		//					Value: "veth" + c.RandomID(),
+		//				},
+		//			},
+
 	}
 	return dCfg, dHostCfg
 }

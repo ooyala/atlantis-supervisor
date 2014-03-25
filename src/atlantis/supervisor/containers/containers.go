@@ -12,12 +12,13 @@
 package containers
 
 import (
+	"atlantis/supervisor/containers/serialize"
 	"atlantis/supervisor/docker"
 	"atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
 	"log"
-	"os"
+	"os/exec"
 )
 
 const (
@@ -58,7 +59,6 @@ type NumsResp struct {
 }
 
 var (
-	SaveDir           string
 	NumContainers     uint16 // for maximum efficiency, should = CPUShares
 	NumSecondaryPorts uint16
 	MinPort           uint16
@@ -78,7 +78,9 @@ var (
 
 // Initialize everything needed to use containers
 func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort uint16, cpu, memory uint) error {
-	SaveDir = saveDir
+	if err := serialize.Init(saveDir); err != nil {
+		return err
+	}
 	NumContainers = numContainers
 	NumSecondaryPorts = numSecondaryPorts
 	MinPort = minPort
@@ -91,18 +93,13 @@ func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort ui
 		// don't error out because technically this is ok
 		log.Println("WARNING: for maximum efficiency please set num_containers = cpu_shares")
 	}
-	err := os.MkdirAll(SaveDir, 0755)
-	if err != nil {
-		return err
-	}
 	reserveChan = make(chan *ReserveReq)
 	teardownChan = make(chan *TeardownReq)
 	getChan = make(chan *GetReq)
 	listChan = make(chan chan *ListResp)
 	numsChan = make(chan chan *NumsResp)
 	dieChan = make(chan bool)
-	err = docker.Init(registry)
-	if err != nil {
+	if err := docker.Init(registry); err != nil {
 		return err
 	}
 	go containerManager()
@@ -194,6 +191,7 @@ func teardown(req *TeardownReq) {
 		usedCPUShares = usedCPUShares - containers[req.id].Manifest.CPUShares
 		delete(containers, req.id)
 		save()
+		inventory()
 		req.respChan <- true
 	} else {
 		req.respChan <- false
@@ -234,11 +232,11 @@ func nums(respChan chan *NumsResp) {
 }
 
 func containerManager() {
-	if !retrieveObject(ContainersFile, &containers) || containers == nil {
+	if err := serialize.RetrieveObject(ContainersFile, &containers); err != nil || containers == nil {
 		containers = map[string]*Container{}
 		log.Printf("-> using default container map: %+v", containers)
 	}
-	if !retrieveObject(PortsFile, &ports) || ports == nil {
+	if err := serialize.RetrieveObject(PortsFile, &ports); err != nil || ports == nil {
 		ports = make([]uint16, NumContainers)
 		for i := uint16(0); i < NumContainers; i++ {
 			ports[i] = i
@@ -276,5 +274,26 @@ func containerManager() {
 			close(dieChan)
 			return
 		}
+	}
+}
+
+func save() {
+	serialize.SaveAll(serialize.SaveDefinition{
+		ContainersFile,
+		containers,
+	}, serialize.SaveDefinition{
+		PortsFile,
+		ports,
+	})
+}
+
+func inventory() {
+	log.Println("[CMK Inventory] Start")
+	cmd := exec.Command("cmk_admin", "-I")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("[CMK Inventory] ERROR: " + err.Error() + "\n" + string(output))
+	} else {
+		log.Println("[CMK Inventory] done:\n" + string(output))
 	}
 }
