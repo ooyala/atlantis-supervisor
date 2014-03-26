@@ -84,8 +84,8 @@ func (s *SyncT) loadSrc() map[string]string {
 
 			buf, err := ioutil.ReadFile(logPath)
 			if err != nil {
-				// Something went wrong reading a log, so print and panic
-				return err
+				// Something went wrong reading a log, so log and exit
+				log.Fatal(err)
 			}
 
 			md5Hash := md5.New()
@@ -127,7 +127,7 @@ func putLog(t transfer, bucket *s3.Bucket, dry bool) {
 	if err != nil {
 		// Error reading log
 		log.Printf("Error reading source file %s:\n", t.Src)
-		panic(err.Error())
+		log.Fatal(err)
 	}
 
 	contType := "binary/octet-stream"
@@ -141,66 +141,47 @@ func putLog(t transfer, bucket *s3.Bucket, dry bool) {
 		if err != nil {
 			// Error uploading log to s3
 			log.Printf("Sync of %s to s3://%s/%s failed:\n", t.Src, bucket.Name, t.Dest)
-			panic(err.Error())
+			log.Fatal(err)
 		}
 	}
 }
 
-func syncFile(t transfer, bucket *s3.Bucket, workerChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
+func syncFile(t transfer, bucket *s3.Bucket, workerChan chan empty, wg *sync.WaitGroup, dry bool) {
 	defer wg.Done()
-	if debug {
-		log.Printf("Beginning to put log from %s to %s\n", t.Src, t.Dest)
-	}
 	putLog(t, bucket, dry)
 	<-workerChan
 }
 
-func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, wg *sync.WaitGroup, dry bool, debug bool) {
+func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan empty, dieChan chan empty, wg *sync.WaitGroup, dry bool) {
 	for {
 		select {
 		case file := <-fileChan:
-			if debug {
-				log.Printf("Spawner received transfer request.\n")
-			}
 			wg.Add(1)
-			go syncFile(file, bucket, workerChan, wg, dry, debug)
+			go syncFile(file, bucket, workerChan, wg, dry)
 		case <-dieChan:
-			if debug {
-				log.Printf("Die received. Exiting worker spawner...\n")
-			}
 			return
 		}
 	}
 }
 
 func (s *SyncT) syncLogs(src, dest map[string]string) error {
+	log.Println("Starting Sync...")
 	fileChan := make(chan transfer)
 	workerChan := make(chan empty, s.Threads)
 	dieChan := make(chan empty)
 	var wg sync.WaitGroup
-	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, &wg, s.Dry, s.Debug)
+	go workerSpawner(s.Bucket, fileChan, workerChan, dieChan, &wg, s.Dry)
 	for f, _ := range src {
 		if dest[f] != src[f] {
 			srcPath := strings.Join([]string{s.Dir, f}, "/")
 			destPath := strings.Join([]string{s.Prefix, f}, "/")
-			if s.Debug {
-				log.Printf("Beginning transfer request of %s to %s\n", srcPath, destPath)
-			}
 			workerChan <- empty{}
 			fileChan <- transfer{srcPath, destPath}
 		}
 	}
-	if s.Debug {
-		log.Printf("Sending files completed. Waiting for all workers to exit...\n")
-	}
 	wg.Wait()
-	if s.Debug {
-		log.Printf("Workers all completed. Sending die to worker spawner...\n")
-	}
 	dieChan <- empty{}
-	if s.Debug {
-		log.Printf("Worker spawner dead. Exiting...\n")
-	}
+	log.Println("Sync Completed Successfully!")
 	return nil
 }
 
