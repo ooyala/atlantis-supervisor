@@ -165,7 +165,6 @@ func workerSpawner(bucket *s3.Bucket, fileChan chan transfer, workerChan chan em
 }
 
 func (s *SyncT) syncLogs(src, dest map[string]string) error {
-	log.Println("Starting Sync...")
 	fileChan := make(chan transfer)
 	workerChan := make(chan empty, s.Threads)
 	dieChan := make(chan empty)
@@ -181,7 +180,6 @@ func (s *SyncT) syncLogs(src, dest map[string]string) error {
 	}
 	wg.Wait()
 	dieChan <- empty{}
-	log.Println("Sync Completed Successfully!")
 	return nil
 }
 
