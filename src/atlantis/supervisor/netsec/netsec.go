@@ -13,6 +13,12 @@ type ContainerSecurity struct {
 	SecurityGroups map[string]uint16 // ipgroup name -> port
 }
 
+func (c *ContainerSecurity) GetNetworkInfo() error {
+	// this will call out to guano to figure out what the veth and mark should be
+	// TODO[jigish] implement
+	return errors.New("unimplemented")
+}
+
 type NetworkSecurity struct {
 	sync.Mutex
 	deniedIPs  map[string]bool              // list of denied IPs. map for easy existence check
