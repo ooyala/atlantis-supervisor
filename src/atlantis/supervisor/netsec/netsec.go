@@ -29,7 +29,7 @@ type NetworkSecurity struct {
 func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	n.Lock()
 	defer n.Unlock()
-	current, exists := n.ipGroups[ips]
+	current, exists := n.ipGroups[name]
 	toRemove := []string{}
 	if exists {
 		// figure out what is being removed
