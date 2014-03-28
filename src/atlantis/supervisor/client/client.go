@@ -61,6 +61,8 @@ func New() *Supervisor {
 	ih.AddCommand("deuthorize-ssh", "deauthorize ssh access to a container", "", &DeauthorizeSSHCommand{})
 	ih.AddCommand("container-maintenance", "set maintenance mode for a container", "",
 		&ContainerMaintenanceCommand{})
+	ih.AddCommand("update-ip-group", "update an ip group", "", &UpdateIPGroupCommand{})
+	ih.AddCommand("delete-ip-group", "delete an ip group", "", &DeleteIPGroupCommand{})
 	ih.AddCommand("idle", "check if supervisor is idle", "", &IdleCommand{})
 	return ih
 }
@@ -284,6 +286,41 @@ func (c *DeauthorizeSSHCommand) Execute(args []string) error {
 		return err
 	}
 	log.Printf("-> Deauthorize %s SSH for %s @ %s", reply.Status, c.User, c.Container)
+	return nil
+}
+
+type UpdateIPGroupCommand struct {
+	Name string   `short:"n" long:"name" description:"the name of the IP group"`
+	IPs  []string `short:"i" long:"ip" description:"the IP(s) in the group"`
+}
+
+func (c *UpdateIPGroupCommand) Execute(args []string) error {
+	overlayConfig()
+	log.Println("Update IP Group...")
+	arg := SupervisorUpdateIPGroupArg{Name: c.Name, IPs: c.IPs}
+	var reply SupervisorUpdateIPGroupReply
+	err := rpcClient.Call("UpdateIPGroup", arg, &reply)
+	if err != nil {
+		return err
+	}
+	log.Printf("-> UpdateIPGroup [%s] %s -> %v", reply.Status, c.Name, c.IPs)
+	return nil
+}
+
+type DeleteIPGroupCommand struct {
+	Name string `short:"n" long:"name" description:"the name of the IP group"`
+}
+
+func (c *DeleteIPGroupCommand) Execute(args []string) error {
+	overlayConfig()
+	log.Println("Delete IP Group...")
+	arg := SupervisorDeleteIPGroupArg{Name: c.Name}
+	var reply SupervisorDeleteIPGroupReply
+	err := rpcClient.Call("DeleteIPGroup", arg, &reply)
+	if err != nil {
+		return err
+	}
+	log.Printf("-> DeleteIPGroup [%s] %s", reply.Status, c.Name)
 	return nil
 }
 
