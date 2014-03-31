@@ -30,18 +30,47 @@ func (c *Container) Deploy(host, app, sha, env string) error {
 	if err != nil {
 		return err
 	}
-	// TODO update iptables
-	// sudo iptables -A PREROUTING -t mangle -m physdev --physdev-in veth<container> -j MARK --set-mark <container mark>
-	// sudo iptables -I FORWARD -p tcp <match destination ip of router and destination ports that we want> -j ACCEPT
-	// iptables to kill all traffic out of the container
-	save()      // save here because this is when we know the deployed container is actually alive
-	inventory() // now that the container is up and we've saved it, inventory check_mk
+	// by this time Pid should be filled in
+	NetworkSecurity.AddContainerSecurity(c.ID, c.Pid, c.getSecurityGroups()) // add network security
+	save()                                                                   // save here because this is when we know the deployed container is actually alive
+	inventory()                                                              // now that the container is up and we've saved it, inventory check_mk
 	return nil
+}
+
+func (c *Container) getSecurityGroups() map[string][]uint16 {
+	sgsMap := map[string]map[uint16]bool{}
+	for _, appDep := range c.Manifest.Deps {
+		for name, ports := range appDep.SecurityGroup {
+			if len(ports) == 0 {
+				continue
+			}
+			// fill in to a map first to dedup
+			if len(sgsMap[name]) == 0 {
+				sgsMap[name] = map[uint16]bool{}
+			}
+			for _, port := range ports {
+				sgsMap[name][port] = true
+			}
+		}
+	}
+	sgs := map[string][]uint16{}
+	for name, portMap := range sgsMap {
+		if len(portMap) == 0 {
+			continue
+		}
+		sgs[name] = make([]uint16, len(portMap))
+		i := 0
+		for port, _ := range portMap {
+			sgs[name][i] = port
+			i++
+		}
+	}
+	return sgs
 }
 
 // This calls the Teardown(id string) method to ensure that the ports/containers are freed. That will in turn
 // call c.teardown(id string)
 func (c *Container) Teardown() {
-	// TODO update iptables
+	NetworkSecurity.RemoveContainerSecurity(c.ID)
 	Teardown(c.ID)
 }

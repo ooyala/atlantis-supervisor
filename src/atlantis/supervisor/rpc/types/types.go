@@ -27,6 +27,8 @@ type GenericContainer interface {
 	GetDockerRepo() string
 	GetIP() string
 	SetIP(string)
+	GetPid() int
+	SetPid(int)
 	GetSSHPort() uint16
 }
 
@@ -34,6 +36,7 @@ type Container struct {
 	ID             string
 	DockerID       string
 	IP             string
+	Pid            int
 	Host           string
 	PrimaryPort    uint16
 	SecondaryPorts []uint16
@@ -76,6 +79,14 @@ func (c *Container) GetIP() string {
 	return c.IP
 }
 
+func (c *Container) SetPid(pid int) {
+	c.Pid = pid
+}
+
+func (c *Container) GetPid() int {
+	return c.Pid
+}
+
 func (c *Container) GetSSHPort() uint16 {
 	return c.SSHPort
 }
@@ -87,6 +98,7 @@ func (c *Container) RandomID() string {
 func (c *Container) String() string {
 	return fmt.Sprintf(`%s
 IP              : %s
+Pid             : %d
 Host            : %s
 Primary Port    : %d
 SSH Port        : %d
@@ -95,13 +107,13 @@ App             : %s
 SHA             : %s
 CPU Shares      : %d
 Memory Limit    : %d
-Docker ID       : %s`, c.ID, c.IP, c.Host, c.PrimaryPort, c.SSHPort, c.SecondaryPorts, c.App, c.Sha,
+Docker ID       : %s`, c.ID, c.IP, c.Pid, c.Host, c.PrimaryPort, c.SSHPort, c.SecondaryPorts, c.App, c.Sha,
 		c.Manifest.CPUShares, c.Manifest.MemoryLimit, c.DockerID)
 }
 
 type DepsType map[string]*AppDep
 type AppDep struct {
-	SecurityGroup []string
+	SecurityGroup map[string][]uint16
 	DataMap       map[string]interface{}
 	EncryptedData string
 }
@@ -126,11 +138,17 @@ func (m *Manifest) Dup() *Manifest {
 	deps := DepsType{}
 	for key, val := range m.Deps {
 		deps[key] = &AppDep{
-			SecurityGroup: make([]string, len(val.SecurityGroup)),
+			SecurityGroup: make(map[string][]uint16, len(val.SecurityGroup)),
 			DataMap:       map[string]interface{}{},
 		}
-		for i, ipAndPort := range val.SecurityGroup {
-			deps[key].SecurityGroup[i] = ipAndPort
+		for ipGroupName, ports := range val.SecurityGroup {
+			if len(ports) == 0 {
+				continue
+			}
+			deps[key].SecurityGroup[ipGroupName] = make([]uint16, len(ports))
+			for i, port := range ports {
+				deps[key].SecurityGroup[ipGroupName][i] = port
+			}
 		}
 		for innerKey, innerVal := range val.DataMap {
 			deps[key].DataMap[innerKey] = innerVal
@@ -296,6 +314,25 @@ type SupervisorDeauthorizeSSHArg struct {
 }
 
 type SupervisorDeauthorizeSSHReply struct {
+	Status string
+}
+
+// ------------ Update IP Group ------------
+type SupervisorUpdateIPGroupArg struct {
+	Name string
+	IPs  []string
+}
+
+type SupervisorUpdateIPGroupReply struct {
+	Status string
+}
+
+// ------------ Delete IP Group ------------
+type SupervisorDeleteIPGroupArg struct {
+	Name string
+}
+
+type SupervisorDeleteIPGroupReply struct {
 	Status string
 }
 

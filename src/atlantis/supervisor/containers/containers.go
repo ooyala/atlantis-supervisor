@@ -14,6 +14,7 @@ package containers
 import (
 	"atlantis/supervisor/containers/serialize"
 	"atlantis/supervisor/docker"
+	"atlantis/supervisor/netsec"
 	"atlantis/supervisor/rpc/types"
 	"errors"
 	"fmt"
@@ -22,8 +23,9 @@ import (
 )
 
 const (
-	ContainersFile = "containers"
-	PortsFile      = "ports"
+	ContainersFile      = "containers"
+	PortsFile           = "ports"
+	NetworkSecurityFile = "netsec"
 )
 
 type ReserveReq struct {
@@ -59,6 +61,7 @@ type NumsResp struct {
 }
 
 var (
+	NetworkSecurity   *netsec.NetworkSecurity
 	NumContainers     uint16 // for maximum efficiency, should = CPUShares
 	NumSecondaryPorts uint16
 	MinPort           uint16
@@ -242,6 +245,13 @@ func containerManager() {
 			ports[i] = i
 		}
 		log.Printf("-> using default port list: %+v", ports)
+	}
+	var ns netsec.NetworkSecurity
+	if err := serialize.RetrieveObject(NetworkSecurityFile, ns); err != nil {
+		NetworkSecurity = netsec.New(NetworkSecurityFile)
+		log.Printf("-> using default network security (wide open)")
+	} else {
+		NetworkSecurity = &ns
 	}
 	usedCPUShares = 0
 	usedMemoryLimit = 0

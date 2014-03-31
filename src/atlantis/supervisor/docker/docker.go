@@ -199,6 +199,7 @@ func Deploy(c types.GenericContainer) error {
 			return errors.New("Could not get NetworkSettings from docker")
 		}
 		c.SetIP(inspCont.NetworkSettings.IPAddress)
+		c.SetPid(inspCont.State.Pid)
 	}
 	return nil
 }
