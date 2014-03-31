@@ -3,41 +3,8 @@ package netsec
 import (
 	"atlantis/supervisor/containers/serialize"
 	"errors"
-	"fmt"
-	"os/exec"
-	"strings"
 	"sync"
 )
-
-type ContainerSecurity struct {
-	veth           string
-	mark           string
-	ID             string
-	Pid            int
-	SecurityGroups map[string][]uint16 // ipgroup name -> ports
-}
-
-func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec *ContainerSecurity, err error) {
-	contSec = &ContainerSecurity{
-		ID:             id,
-		Pid:            pid,
-		SecurityGroups: sgs,
-	}
-	contSec.mark, contSec.veth, err = guano(pid)
-	return contSec, err
-}
-
-func guano(pid int) (string, string, error) {
-	out, err := ExecuteCommand("/usr/sbin/guano", fmt.Sprintf("%d", pid), "eth0")
-	if err != nil {
-		return "", "", err
-	}
-	parts := strings.Split(out, " ")
-	if len(parts) != 2 {
-		return "", "", errors.New("guano is batshit insane.")
-	}
-	return parts[0], parts[1], nil
-}
 
 type NetworkSecurity struct {
 	sync.Mutex
@@ -55,6 +22,14 @@ func New(saveFile string) *NetworkSecurity {
 		ipGroups:   map[string][]string{},
 		containers: map[string]*ContainerSecurity{},
 	}
+}
+
+func (n *NetworkSecurity) save() {
+	// save state
+	serialize.SaveAll(serialize.SaveDefinition{
+		n.SaveFile,
+		n,
+	})
 }
 
 func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
@@ -81,7 +56,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 			// already exists
 			continue
 		}
-		if err := n.rejectIP(true, ip); err != nil {
+		if err := n.rejectIP(ip); err != nil {
 			return err
 		}
 		n.deniedIPs[ip] = true
@@ -93,7 +68,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 			// already removed
 			continue
 		}
-		n.rejectIP(false, ip)
+		n.allowIP(ip)
 		delete(n.deniedIPs, ip)
 	}
 	// add/remove forward rules for new IPs for everything that uses the name
@@ -106,11 +81,11 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 		for _, port := range ports {
 			// add new ips
 			for _, ip := range newIPs {
-				n.openPort(true, contSec.mark, ip, port)
+				contSec.openPort(ip, port)
 			}
 			// remove old ips
 			for _, ip := range toRemove {
-				n.openPort(false, contSec.mark, ip, port)
+				contSec.closePort(ip, port)
 			}
 		}
 	}
@@ -151,16 +126,14 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	if err != nil {
 		return err
 	}
-	// create prerouting mark
-	if err := n.markVeth(true, contSec.veth, contSec.mark); err != nil {
-		return err
-	}
+	contSec.addMark()
+
 	// add forward rules
 	for group, ports := range sgs {
 		for _, port := range ports {
 			ips := n.ipGroups[group]
 			for _, ip := range ips {
-				if err := n.openPort(true, contSec.mark, ip, port); err != nil {
+				if err := contSec.openPort(ip, port); err != nil {
 					defer n.RemoveContainerSecurity(id) // cleanup created references when we error out
 					return err
 				}
@@ -174,22 +147,20 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	n.Lock()
 	defer n.Unlock()
-	var (
-		contSec *ContainerSecurity
-		exists  bool
-	)
-	if contSec, exists = n.containers[id]; !exists {
+
+	contSec, exists := n.containers[id]
+	if !exists {
 		// no container security here, nothing to remove
 		return nil
 	}
-	// remove prerouting mark
-	n.markVeth(false, contSec.veth, contSec.mark)
+
+	contSec.delMark()
 	// remove forward rules
 	for group, ports := range contSec.SecurityGroups {
 		for _, port := range ports {
 			ips := n.ipGroups[group]
 			for _, ip := range ips {
-				n.openPort(false, contSec.mark, ip, port)
+				contSec.closePort(ip, port)
 			}
 		}
 	}
@@ -197,57 +168,16 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	return nil
 }
 
-func (n *NetworkSecurity) rejectIP(add bool, ip string) error {
-	action := "-I"
-	if !add {
-		action = "-D"
-	}
-	_, err := ExecuteCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
+func (n *NetworkSecurity) forwardRule(action, ip string) error {
+	_, err := executeCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
 	return err
 }
 
-func (n *NetworkSecurity) openPort(add bool, mark string, ip string, port uint16) error {
-	action := "-I"
-	if !add {
-		action = "-D"
-	}
-	_, err := ExecuteCommand("iptables", action, "FORWARD",
-		"-d", ip,
-		"-p", "tcp", "--dport", fmt.Sprintf("%d", port),
-		"-m", "mark", "--mark", mark,
-		"-j", "ACCEPT")
-	return err
+func (n *NetworkSecurity) rejectIP(ip string) error {
+	return n.forwardRule("-I", ip)
 }
 
-func (n *NetworkSecurity) markVeth(add bool, veth string, mark string) error {
-	action := "-I"
-	if !add {
-		action = "-D"
-	}
-	_, err := ExecuteCommand("iptables", action, "PREROUTING", "-t", "mangle",
-		"-m", "physdev", "--physdev-in", veth,
-		"-j", "MARK", "--set-mark", mark)
-	return err
+func (n *NetworkSecurity) allowIP(ip string) error {
+	return n.forwardRule("-D", ip)
 }
 
-func ExecuteCommand(command string, args ...string) (string, error) {
-	cmd := exec.Command(command, args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		switch err.(type) {
-		case *exec.ExitError:
-			return string(out), errors.New(string(out))
-		default:
-			return string(out), err
-		}
-	}
-	return string(out), nil
-}
-
-func (n *NetworkSecurity) save() {
-	// save state
-	serialize.SaveAll(serialize.SaveDefinition{
-		n.SaveFile,
-		n,
-	})
-}
