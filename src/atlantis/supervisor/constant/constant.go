@@ -17,7 +17,7 @@ var (
 )
 
 const (
-	SupervisorRPCVersion            = "1.0.0"
+	SupervisorRPCVersion            = "3.0.0"
 	DefaultSupervisorRPCPort        = uint16(1337)
 	DefaultSupervisorSaveDir        = "/etc/atlantis/supervisor/save"
 	DefaultSupervisorNumContainers  = uint16(100)
