@@ -45,11 +45,11 @@ func (c *ContainerSecurity) filterPort(action, ip string, port uint16) error {
 	return err
 }
 
-func (c *ContainerSecurity) openPort(ip string, port uint16) error {
+func (c *ContainerSecurity) allowPort(ip string, port uint16) error {
 	return c.filterPort("-I", ip, port)
 }
 
-func (c *ContainerSecurity) closePort(ip string, port uint16) error {
+func (c *ContainerSecurity) rejectPort(ip string, port uint16) error {
 	return c.filterPort("-D", ip, port)
 }
 

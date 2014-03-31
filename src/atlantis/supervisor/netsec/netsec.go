@@ -81,11 +81,11 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 		for _, port := range ports {
 			// add new ips
 			for _, ip := range newIPs {
-				contSec.openPort(ip, port)
+				contSec.allowPort(ip, port)
 			}
 			// remove old ips
 			for _, ip := range toRemove {
-				contSec.closePort(ip, port)
+				contSec.rejectPort(ip, port)
 			}
 		}
 	}
@@ -133,7 +133,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 		for _, port := range ports {
 			ips := n.ipGroups[group]
 			for _, ip := range ips {
-				if err := contSec.openPort(ip, port); err != nil {
+				if err := contSec.allowPort(ip, port); err != nil {
 					defer n.RemoveContainerSecurity(id) // cleanup created references when we error out
 					return err
 				}
@@ -160,7 +160,7 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 		for _, port := range ports {
 			ips := n.ipGroups[group]
 			for _, ip := range ips {
-				contSec.closePort(ip, port)
+				contSec.rejectPort(ip, port)
 			}
 		}
 	}
