@@ -3,6 +3,7 @@ package netsec
 import (
 	"atlantis/supervisor/containers/serialize"
 	"errors"
+	"log"
 	"sync"
 )
 
