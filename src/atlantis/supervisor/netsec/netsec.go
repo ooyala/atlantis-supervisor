@@ -194,7 +194,7 @@ func addConnTrackRule() error {
 }
 
 func (n *NetworkSecurity) forwardRule(action, ip string) error {
-	_, err := executeCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
+	_, err := executeCommand("iptables", action, "FORWARD", "-i", "docker0", "-d", ip, "-j", "REJECT")
 	return err
 }
 
