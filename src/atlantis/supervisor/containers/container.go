@@ -71,6 +71,5 @@ func (c *Container) getSecurityGroups() map[string][]uint16 {
 // This calls the Teardown(id string) method to ensure that the ports/containers are freed. That will in turn
 // call c.teardown(id string)
 func (c *Container) Teardown() {
-	NetworkSecurity.RemoveContainerSecurity(c.ID)
 	Teardown(c.ID)
 }

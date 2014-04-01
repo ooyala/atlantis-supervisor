@@ -188,6 +188,7 @@ func reserve(req *ReserveReq) {
 func teardown(req *TeardownReq) {
 	container := containers[req.id]
 	if container != nil {
+		NetworkSecurity.RemoveContainerSecurity(req.id)
 		docker.Teardown(containers[req.id])
 		ports = append(ports, containers[req.id].PrimaryPort-MinPort)
 		usedMemoryLimit = usedMemoryLimit - containers[req.id].Manifest.MemoryLimit
