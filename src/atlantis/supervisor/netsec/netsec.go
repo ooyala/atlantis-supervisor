@@ -35,6 +35,11 @@ func (n *NetworkSecurity) save() {
 func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	n.Lock()
 	defer n.Unlock()
+
+	if err := delConnTrackRule(); err != nil {
+		return err
+	}
+
 	current, exists := n.ipGroups[name]
 	toRemove := []string{}
 	if exists {
@@ -92,7 +97,8 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	// update ipGroups
 	n.ipGroups[name] = ips
 	n.save()
-	return nil
+
+	return addConnTrackRule()
 }
 
 func (n *NetworkSecurity) DeleteIPGroup(name string) error {
@@ -166,6 +172,16 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	}
 	n.save()
 	return nil
+}
+
+func delConnTrackRule() error {
+	_, err := executeCommand("iptables", "-D", "FORWARD", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	return err
+}
+
+func addConnTrackRule() error {
+	_, err := executeCommand("iptables", "-I", "FORWARD", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	return err
 }
 
 func (n *NetworkSecurity) forwardRule(action, ip string) error {
