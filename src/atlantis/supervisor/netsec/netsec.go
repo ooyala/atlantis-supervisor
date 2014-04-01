@@ -38,7 +38,8 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	defer n.Unlock()
 
 	if err := delConnTrackRule(); err != nil {
-		return err
+		log.Println("[netsec] error deleting track rule: " + err.Error())
+		// continue, probably we never added it in the first place. **crosses fingers**
 	}
 
 	current, exists := n.IPGroups[name]
@@ -188,17 +189,17 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 }
 
 func delConnTrackRule() error {
-	_, err := executeCommand("iptables", "-D", "FORWARD", "-o", "docker0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	_, err := executeCommand("iptables", "-D", "FORWARD", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
 func addConnTrackRule() error {
-	_, err := executeCommand("iptables", "-I", "FORWARD", "-o", "docker0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+	_, err := executeCommand("iptables", "-I", "FORWARD", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
 func (n *NetworkSecurity) forwardRule(action, ip string) error {
-	_, err := executeCommand("iptables", action, "FORWARD", "-i", "docker0", "-d", ip, "-j", "REJECT")
+	_, err := executeCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
 	return err
 }
 
