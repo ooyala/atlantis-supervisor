@@ -116,7 +116,7 @@ func (n *NetworkSecurity) DeleteIPGroup(name string) error {
 func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[string][]uint16) error {
 	n.Lock()
 	defer n.Unlock()
-	log.Println("[netsec] add container security: "+id)
+	log.Printf("[netsec] add container security: "+id+", pid: %d, sgs: %#v", pid, sgs)
 	if _, exists := n.Containers[id]; exists {
 		// we already have security set up for this id. don't do it and return an error.
 		log.Println("[netsec] -- not adding, already existed for: "+id)
@@ -134,6 +134,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	// fetch network info
 	contSec, err := NewContainerSecurity(id, pid, sgs)
 	if err != nil {
+		log.Println("[netsec] -- guano error: "+err.Error())
 		return err
 	}
 	contSec.addMark()
@@ -145,6 +146,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 			for _, ip := range ips {
 				if err := contSec.allowPort(ip, port); err != nil {
 					defer n.RemoveContainerSecurity(id) // cleanup created references when we error out
+					log.Println("[netsec] -- allow port error: "+err.Error())
 					return err
 				}
 			}
