@@ -180,4 +180,3 @@ func (n *NetworkSecurity) rejectIP(ip string) error {
 func (n *NetworkSecurity) allowIP(ip string) error {
 	return n.forwardRule("-D", ip)
 }
-
