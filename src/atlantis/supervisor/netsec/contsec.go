@@ -3,11 +3,18 @@ package netsec
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
 func guano(pid int) (string, string, error) {
-	out, err := executeCommand("/usr/sbin/guano", fmt.Sprintf("%d", pid), "eth0")
+	binDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		return "", "", err
+	}
+	out, err := executeCommand(path.Join(binDir, "guano"), fmt.Sprintf("%d", pid), "eth0")
 	if err != nil {
 		return "", "", err
 	}
@@ -67,4 +74,3 @@ func (c *ContainerSecurity) addMark() error {
 func (c *ContainerSecurity) delMark() error {
 	return c.markVeth("-D")
 }
-

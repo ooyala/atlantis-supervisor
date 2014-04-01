@@ -9,18 +9,18 @@ import (
 type NetworkSecurity struct {
 	sync.Mutex
 	SaveFile   string                        // where to save state
-	deniedIPs  map[string]bool               // list of denied IPs. map for easy existence check
-	ipGroups   map[string][]string           // group name -> list of infrastructure IPs to blanket deny
-	containers map[string]*ContainerSecurity // container id -> ContainerSecurity
+	DeniedIPs  map[string]bool               // list of denied IPs. map for easy existence check
+	IPGroups   map[string][]string           // group name -> list of infrastructure IPs to blanket deny
+	Containers map[string]*ContainerSecurity // container id -> ContainerSecurity
 }
 
 func New(saveFile string) *NetworkSecurity {
 	return &NetworkSecurity{
 		Mutex:      sync.Mutex{},
 		SaveFile:   saveFile,
-		deniedIPs:  map[string]bool{},
-		ipGroups:   map[string][]string{},
-		containers: map[string]*ContainerSecurity{},
+		DeniedIPs:  map[string]bool{},
+		IPGroups:   map[string][]string{},
+		Containers: map[string]*ContainerSecurity{},
 	}
 }
 
@@ -40,7 +40,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 		return err
 	}
 
-	current, exists := n.ipGroups[name]
+	current, exists := n.IPGroups[name]
 	toRemove := []string{}
 	if exists {
 		// figure out what is being removed
@@ -57,27 +57,27 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	// add blanket deny rule for new IPs
 	newIPs := []string{}
 	for _, ip := range ips {
-		if n.deniedIPs[ip] {
+		if n.DeniedIPs[ip] {
 			// already exists
 			continue
 		}
 		if err := n.rejectIP(ip); err != nil {
 			return err
 		}
-		n.deniedIPs[ip] = true
+		n.DeniedIPs[ip] = true
 		newIPs = append(newIPs, ip)
 	}
 	// remove blanket deny rule for removed IPs
 	for _, ip := range toRemove {
-		if !n.deniedIPs[ip] {
+		if !n.DeniedIPs[ip] {
 			// already removed
 			continue
 		}
 		n.allowIP(ip)
-		delete(n.deniedIPs, ip)
+		delete(n.DeniedIPs, ip)
 	}
 	// add/remove forward rules for new IPs for everything that uses the name
-	for _, contSec := range n.containers {
+	for _, contSec := range n.Containers {
 		ports, exists := contSec.SecurityGroups[name]
 		if !exists {
 			// this container does not use this ip group
@@ -95,7 +95,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 		}
 	}
 	// update ipGroups
-	n.ipGroups[name] = ips
+	n.IPGroups[name] = ips
 	n.save()
 
 	return addConnTrackRule()
@@ -107,7 +107,7 @@ func (n *NetworkSecurity) DeleteIPGroup(name string) error {
 	}
 	n.Lock()
 	defer n.Unlock()
-	delete(n.ipGroups, name)
+	delete(n.IPGroups, name)
 	n.save()
 	return nil
 }
@@ -115,13 +115,13 @@ func (n *NetworkSecurity) DeleteIPGroup(name string) error {
 func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[string][]uint16) error {
 	n.Lock()
 	defer n.Unlock()
-	if _, exists := n.containers[id]; exists {
+	if _, exists := n.Containers[id]; exists {
 		// we already have security set up for this id. don't do it and return an error.
 		return errors.New("Container " + id + " already has Network Security set up.")
 	}
 	// make sure all groups exist
 	for group, _ := range sgs {
-		_, exists := n.ipGroups[group]
+		_, exists := n.IPGroups[group]
 		if !exists {
 			return errors.New("IP Group " + group + " does not exist")
 		}
@@ -137,7 +137,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	// add forward rules
 	for group, ports := range sgs {
 		for _, port := range ports {
-			ips := n.ipGroups[group]
+			ips := n.IPGroups[group]
 			for _, ip := range ips {
 				if err := contSec.allowPort(ip, port); err != nil {
 					defer n.RemoveContainerSecurity(id) // cleanup created references when we error out
@@ -146,6 +146,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 			}
 		}
 	}
+	n.Containers[id] = contSec
 	n.save()
 	return nil
 }
@@ -154,7 +155,7 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	n.Lock()
 	defer n.Unlock()
 
-	contSec, exists := n.containers[id]
+	contSec, exists := n.Containers[id]
 	if !exists {
 		// no container security here, nothing to remove
 		return nil
@@ -164,12 +165,13 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	// remove forward rules
 	for group, ports := range contSec.SecurityGroups {
 		for _, port := range ports {
-			ips := n.ipGroups[group]
+			ips := n.IPGroups[group]
 			for _, ip := range ips {
 				contSec.rejectPort(ip, port)
 			}
 		}
 	}
+	delete(n.Containers, id)
 	n.save()
 	return nil
 }
@@ -196,4 +198,3 @@ func (n *NetworkSecurity) rejectIP(ip string) error {
 func (n *NetworkSecurity) allowIP(ip string) error {
 	return n.forwardRule("-D", ip)
 }
-
