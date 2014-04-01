@@ -34,6 +34,10 @@ type ContainerSecurity struct {
 	SecurityGroups map[string][]uint16 // ipgroup name -> ports
 }
 
+func (c ContainerSecurity) String() string {
+	return fmt.Sprintf("veth %s mark %s id %s pid %d groups %v", c.veth, c.mark, c.ID, c.Pid, c.SecurityGroups)
+}
+
 func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec *ContainerSecurity, err error) {
 	contSec = &ContainerSecurity{
 		ID:             id,

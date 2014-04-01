@@ -119,14 +119,14 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	log.Printf("[netsec] add container security: "+id+", pid: %d, sgs: %#v", pid, sgs)
 	if _, exists := n.Containers[id]; exists {
 		// we already have security set up for this id. don't do it and return an error.
-		log.Println("[netsec] -- not adding, already existed for: "+id)
+		log.Println("[netsec] -- not adding, already existed for: " + id)
 		return errors.New("Container " + id + " already has Network Security set up.")
 	}
 	// make sure all groups exist
 	for group, _ := range sgs {
 		_, exists := n.IPGroups[group]
 		if !exists {
-			log.Println("[netsec] -- not adding group "+group+" doesn't exist for: "+id)
+			log.Println("[netsec] -- not adding group " + group + " doesn't exist for: " + id)
 			return errors.New("IP Group " + group + " does not exist")
 		}
 	}
@@ -134,9 +134,10 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	// fetch network info
 	contSec, err := NewContainerSecurity(id, pid, sgs)
 	if err != nil {
-		log.Println("[netsec] -- guano error: "+err.Error())
+		log.Println("[netsec] -- guano error: " + err.Error())
 		return err
 	}
+	log.Println("[netsec] --> contSec: " + contSec.String())
 	contSec.addMark()
 
 	// add forward rules
@@ -146,7 +147,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 			for _, ip := range ips {
 				if err := contSec.allowPort(ip, port); err != nil {
 					defer n.RemoveContainerSecurity(id) // cleanup created references when we error out
-					log.Println("[netsec] -- allow port error: "+err.Error())
+					log.Println("[netsec] -- allow port error: " + err.Error())
 					return err
 				}
 			}
@@ -154,21 +155,22 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	}
 	n.Containers[id] = contSec
 	n.save()
-	log.Println("[netsec] -- added "+id)
+	log.Println("[netsec] -- added " + id)
 	return nil
 }
 
 func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	n.Lock()
 	defer n.Unlock()
-	log.Println("[netsec] remove container security: "+id)
+	log.Println("[netsec] remove container security: " + id)
 	contSec, exists := n.Containers[id]
 	if !exists {
-		log.Println("[netsec] -- not removing, none existed for: "+id)
+		log.Println("[netsec] -- not removing, none existed for: " + id)
 		// no container security here, nothing to remove
 		return nil
 	}
 
+	log.Println("[netsec] --> contSec: " + contSec.String())
 	contSec.delMark()
 	// remove forward rules
 	for group, ports := range contSec.SecurityGroups {
@@ -181,7 +183,7 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	}
 	delete(n.Containers, id)
 	n.save()
-	log.Println("[netsec] -- removed "+id)
+	log.Println("[netsec] -- removed " + id)
 	return nil
 }
 
