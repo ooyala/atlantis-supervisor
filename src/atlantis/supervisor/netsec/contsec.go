@@ -44,8 +44,11 @@ func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec 
 		Pid:            pid,
 		SecurityGroups: sgs,
 	}
-	for i := 0; i < 5 && err != nil; i++ {
+	for i := 0; i < 5; i++ {
 		contSec.mark, contSec.veth, err = guano(pid)
+		if err == nil {
+			break
+		}
 		time.Sleep(1 * time.Second)
 	}
 	return contSec, err
