@@ -115,14 +115,17 @@ func (n *NetworkSecurity) DeleteIPGroup(name string) error {
 func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[string][]uint16) error {
 	n.Lock()
 	defer n.Unlock()
+	log.Println("[netsec] add container security: "+id)
 	if _, exists := n.Containers[id]; exists {
 		// we already have security set up for this id. don't do it and return an error.
+		log.Println("[netsec] -- not adding, already existed for: "+id)
 		return errors.New("Container " + id + " already has Network Security set up.")
 	}
 	// make sure all groups exist
 	for group, _ := range sgs {
 		_, exists := n.IPGroups[group]
 		if !exists {
+			log.Println("[netsec] -- not adding group "+group+" doesn't exist for: "+id)
 			return errors.New("IP Group " + group + " does not exist")
 		}
 	}
@@ -148,15 +151,17 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	}
 	n.Containers[id] = contSec
 	n.save()
+	log.Println("[netsec] -- added "+id)
 	return nil
 }
 
 func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	n.Lock()
 	defer n.Unlock()
-
+	log.Println("[netsec] remove container security: "+id)
 	contSec, exists := n.Containers[id]
 	if !exists {
+		log.Println("[netsec] -- not removing, none existed for: "+id)
 		// no container security here, nothing to remove
 		return nil
 	}
@@ -173,6 +178,7 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	}
 	delete(n.Containers, id)
 	n.save()
+	log.Println("[netsec] -- removed "+id)
 	return nil
 }
 
