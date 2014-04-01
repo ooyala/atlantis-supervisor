@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func guano(pid int) (string, string, error) {
@@ -39,7 +40,10 @@ func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec 
 		Pid:            pid,
 		SecurityGroups: sgs,
 	}
-	contSec.mark, contSec.veth, err = guano(pid)
+	for i := 0; i < 5 && err != nil; i++ {
+		contSec.mark, contSec.veth, err = guano(pid)
+		time.Sleep(1 * time.Second)
+	}
 	return contSec, err
 }
 
