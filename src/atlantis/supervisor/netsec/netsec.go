@@ -184,12 +184,12 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 }
 
 func delConnTrackRule() error {
-	_, err := executeCommand("iptables", "-D", "FORWARD", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	_, err := executeCommand("iptables", "-D", "FORWARD", "-o", "docker0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
 func addConnTrackRule() error {
-	_, err := executeCommand("iptables", "-I", "FORWARD", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT")
+	_, err := executeCommand("iptables", "-I", "FORWARD", "-o", "docker0", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
