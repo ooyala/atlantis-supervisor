@@ -62,6 +62,7 @@ type NumsResp struct {
 
 var (
 	NetworkSecurity   *netsec.NetworkSecurity
+	EnableNetsec      bool
 	NumContainers     uint16 // for maximum efficiency, should = CPUShares
 	NumSecondaryPorts uint16
 	MinPort           uint16
@@ -249,7 +250,8 @@ func containerManager() {
 	}
 	var ns netsec.NetworkSecurity
 	if err := serialize.RetrieveObject(NetworkSecurityFile, ns); err != nil {
-		NetworkSecurity = netsec.New(NetworkSecurityFile)
+		// Enable is negated because it is "Pretend" on the inside, "Enable" on the outside.
+		NetworkSecurity = netsec.New(NetworkSecurityFile, !EnableNetsec)
 		log.Printf("-> using default network security (wide open)")
 	} else {
 		NetworkSecurity = &ns

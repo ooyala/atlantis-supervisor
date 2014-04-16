@@ -15,7 +15,7 @@ func guano(pid int) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	out, err := executeCommand(path.Join(binDir, "guano"), fmt.Sprintf("%d", pid), "eth0")
+	out, err := executeCommand(false, path.Join(binDir, "guano"), fmt.Sprintf("%d", pid), "eth0")
 	if err != nil {
 		return "", "", err
 	}
@@ -31,6 +31,7 @@ type ContainerSecurity struct {
 	mark           string
 	ID             string
 	Pid            int
+	Pretend        bool
 	SecurityGroups map[string][]uint16 // ipgroup name -> ports
 }
 
@@ -38,11 +39,12 @@ func (c ContainerSecurity) String() string {
 	return fmt.Sprintf("veth %s mark %s id %s pid %d groups %v", c.veth, c.mark, c.ID, c.Pid, c.SecurityGroups)
 }
 
-func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec *ContainerSecurity, err error) {
+func NewContainerSecurity(id string, pid int, sgs map[string][]uint16, pretend bool) (contSec *ContainerSecurity, err error) {
 	contSec = &ContainerSecurity{
 		ID:             id,
 		Pid:            pid,
 		SecurityGroups: sgs,
+		Pretend:        pretend,
 	}
 	for i := 0; i < 5; i++ {
 		contSec.mark, contSec.veth, err = guano(pid)
@@ -55,7 +57,8 @@ func NewContainerSecurity(id string, pid int, sgs map[string][]uint16) (contSec 
 }
 
 func (c *ContainerSecurity) filterPort(action, ip string, port uint16) error {
-	_, err := executeCommand("iptables", action, "FORWARD",
+	defer echoIPTables(c.Pretend)
+	_, err := c.executeCommand("iptables", action, "FORWARD",
 		"-d", ip,
 		"-p", "tcp", "--dport", fmt.Sprintf("%d", port),
 		"-m", "mark", "--mark", c.mark,
@@ -72,7 +75,8 @@ func (c *ContainerSecurity) rejectPort(ip string, port uint16) error {
 }
 
 func (c *ContainerSecurity) markVeth(action string) error {
-	_, err := executeCommand("iptables", action, "PREROUTING", "-t", "mangle",
+	defer echoIPTables(c.Pretend)
+	_, err := c.executeCommand("iptables", action, "PREROUTING", "-t", "mangle",
 		"-m", "physdev", "--physdev-in", c.veth,
 		"-j", "MARK", "--set-mark", c.mark)
 	return err
@@ -84,4 +88,8 @@ func (c *ContainerSecurity) addMark() error {
 
 func (c *ContainerSecurity) delMark() error {
 	return c.markVeth("-D")
+}
+
+func (c *ContainerSecurity) executeCommand(cmd string, args ...string) (string, error) {
+	return executeCommand(c.Pretend, cmd, args...)
 }
