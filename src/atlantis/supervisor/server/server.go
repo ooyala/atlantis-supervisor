@@ -41,6 +41,7 @@ type Config struct {
 	Zone                     string `toml:"zone"`
 	MaintenanceFile          string `toml:"maintenance_file"`
 	MaintenanceCheckInterval string `toml:"maintenance_check_interval"`
+	EnableNetsec             bool   `toml:"enable_netsec"`
 }
 
 type Opts struct {
@@ -58,6 +59,7 @@ type Opts struct {
 	Config                   string `long:"config-file" default:"/etc/atlantis/supervisor/server.toml" description:"the config file to use"`
 	MaintenanceFile          string `long:"maintenance-file" description:"the maintenance file to check"`
 	MaintenanceCheckInterval string `long:"maintenance-check-interval" description:"the interval to check the maintenance file"`
+	EnableNetsec             bool   `long:"enable-netsec" description:"enable network security (iptables)"`
 }
 
 var opts = &Opts{}
@@ -75,6 +77,7 @@ var config = &Config{
 	Zone:                     DefaultZone,
 	MaintenanceFile:          DefaultMaintenanceFile,
 	MaintenanceCheckInterval: DefaultMaintenanceCheckInterval,
+	EnableNetsec:             false,
 }
 
 type Supervisor struct {
@@ -155,6 +158,9 @@ func overlayConfig() {
 	}
 	if opts.MaintenanceCheckInterval != "" {
 		config.MaintenanceCheckInterval = opts.MaintenanceCheckInterval
+	}
+	if opts.EnableNetsec {
+		config.EnableNetsec = opts.EnableNetsec
 	}
 }
 

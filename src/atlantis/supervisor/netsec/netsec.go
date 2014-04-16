@@ -9,15 +9,17 @@ import (
 
 type NetworkSecurity struct {
 	sync.Mutex
+	Pretend    bool
 	SaveFile   string                        // where to save state
 	DeniedIPs  map[string]bool               // list of denied IPs. map for easy existence check
 	IPGroups   map[string][]string           // group name -> list of infrastructure IPs to blanket deny
 	Containers map[string]*ContainerSecurity // container id -> ContainerSecurity
 }
 
-func New(saveFile string) *NetworkSecurity {
+func New(saveFile string, pretend bool) *NetworkSecurity {
 	return &NetworkSecurity{
 		Mutex:      sync.Mutex{},
+		Pretend:    pretend,
 		SaveFile:   saveFile,
 		DeniedIPs:  map[string]bool{},
 		IPGroups:   map[string][]string{},
@@ -37,7 +39,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	n.Lock()
 	defer n.Unlock()
 
-	if err := delConnTrackRule(); err != nil {
+	if err := n.delConnTrackRule(); err != nil {
 		log.Println("[netsec] error deleting track rule: " + err.Error())
 		// continue, probably we never added it in the first place. **crosses fingers**
 	}
@@ -100,7 +102,7 @@ func (n *NetworkSecurity) UpdateIPGroup(name string, ips []string) error {
 	n.IPGroups[name] = ips
 	n.save()
 
-	return addConnTrackRule()
+	return n.addConnTrackRule()
 }
 
 func (n *NetworkSecurity) DeleteIPGroup(name string) error {
@@ -133,7 +135,7 @@ func (n *NetworkSecurity) AddContainerSecurity(id string, pid int, sgs map[strin
 	}
 
 	// fetch network info
-	contSec, err := NewContainerSecurity(id, pid, sgs)
+	contSec, err := NewContainerSecurity(id, pid, sgs, n.Pretend)
 	if err != nil {
 		log.Println("[netsec] -- guano error: " + err.Error())
 		return err
@@ -188,18 +190,23 @@ func (n *NetworkSecurity) RemoveContainerSecurity(id string) error {
 	return nil
 }
 
-func delConnTrackRule() error {
-	_, err := executeCommand("iptables", "-D", "FORWARD", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+func (n *NetworkSecurity) delConnTrackRule() error {
+	defer echoIPTables(n.Pretend)
+	_, err := n.executeCommand("iptables", "-D", "FORWARD", "-m", "conntrack", "--ctstate",
+		"RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
-func addConnTrackRule() error {
-	_, err := executeCommand("iptables", "-I", "FORWARD", "-m", "conntrack", "--ctstate", "RELATED,ESTABLISHED", "-j", "ACCEPT")
+func (n *NetworkSecurity) addConnTrackRule() error {
+	defer echoIPTables(n.Pretend)
+	_, err := n.executeCommand("iptables", "-I", "FORWARD", "-m", "conntrack", "--ctstate",
+		"RELATED,ESTABLISHED", "-j", "ACCEPT")
 	return err
 }
 
 func (n *NetworkSecurity) forwardRule(action, ip string) error {
-	_, err := executeCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
+	defer echoIPTables(n.Pretend)
+	_, err := n.executeCommand("iptables", action, "FORWARD", "-d", ip, "-j", "REJECT")
 	return err
 }
 
@@ -209,4 +216,8 @@ func (n *NetworkSecurity) rejectIP(ip string) error {
 
 func (n *NetworkSecurity) allowIP(ip string) error {
 	return n.forwardRule("-D", ip)
+}
+
+func (n *NetworkSecurity) executeCommand(cmd string, args ...string) (string, error) {
+	return executeCommand(n.Pretend, cmd, args...)
 }
