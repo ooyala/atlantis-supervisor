@@ -250,6 +250,7 @@ func containerManager() {
 	}
 	var ns netsec.NetworkSecurity
 	if err := serialize.RetrieveObject(NetworkSecurityFile, ns); err != nil {
+		// Enable is negated because it is "Pretend" on the inside, "Enable" on the outside.
 		NetworkSecurity = netsec.New(NetworkSecurityFile, !EnableNetsec)
 		log.Printf("-> using default network security (wide open)")
 	} else {
