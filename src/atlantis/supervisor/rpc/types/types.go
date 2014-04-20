@@ -239,6 +239,7 @@ type SupervisorHealthCheckReply struct {
 	Containers *ResourceStats
 	CPUShares  *ResourceStats
 	Memory     *ResourceStats
+	Price      float64
 	Region     string
 	Zone       string
 	Status     string
