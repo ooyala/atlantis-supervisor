@@ -100,7 +100,7 @@ func (c *HealthCommand) Execute(args []string) error {
 	log.Println("Supervisor Health Check...")
 	arg := SupervisorHealthCheckArg{}
 	var reply SupervisorHealthCheckReply
-	err := rpcClient.Call("HealthCheck", arg, &reply)
+	err := rpcClient.CallWithTimeout("HealthCheck", arg, &reply, 5)
 	if err != nil {
 		return err
 	}
