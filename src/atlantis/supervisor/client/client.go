@@ -93,26 +93,33 @@ func overlayConfig() {
 // ----------------------------------------------------------------------------------------------------------
 
 type HealthCommand struct {
+	Quiet bool `long:"quiet" description:"if true, quiet the output"`
 }
 
 func (c *HealthCommand) Execute(args []string) error {
 	overlayConfig()
-	log.Println("Supervisor Health Check...")
+	if !c.Quiet {
+		log.Println("Supervisor Health Check...")
+	}
 	arg := SupervisorHealthCheckArg{}
 	var reply SupervisorHealthCheckReply
 	err := rpcClient.Call("HealthCheck", arg, &reply)
 	if err != nil {
 		return err
 	}
-	log.Printf("-> region: %s", reply.Region)
-	log.Printf("-> zone: %s", reply.Zone)
-	log.Printf("-> containers: %d total, %d used, %d free", reply.Containers.Total, reply.Containers.Used,
-		reply.Containers.Free)
-	log.Printf("-> cpu shares: %d total, %d used, %d free", reply.CPUShares.Total, reply.CPUShares.Used,
-		reply.CPUShares.Free)
-	log.Printf("-> memory: %d MB total, %d MB used, %d MB free", reply.Memory.Total, reply.Memory.Used,
-		reply.Memory.Free)
-	log.Printf("-> status: %s", reply.Status)
+	if c.Quiet {
+		fmt.Println(reply.Status)
+	} else {
+		log.Printf("-> region: %s", reply.Region)
+		log.Printf("-> zone: %s", reply.Zone)
+		log.Printf("-> containers: %d total, %d used, %d free", reply.Containers.Total, reply.Containers.Used,
+			reply.Containers.Free)
+		log.Printf("-> cpu shares: %d total, %d used, %d free", reply.CPUShares.Total, reply.CPUShares.Used,
+			reply.CPUShares.Free)
+		log.Printf("-> memory: %d MB total, %d MB used, %d MB free", reply.Memory.Total, reply.Memory.Used,
+			reply.Memory.Free)
+		log.Printf("-> status: %s", reply.Status)
+	}
 	return nil
 }
 
