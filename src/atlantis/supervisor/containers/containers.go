@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"time"
 )
 
 const (
@@ -196,7 +197,11 @@ func teardown(req *TeardownReq) {
 		usedCPUShares = usedCPUShares - containers[req.id].Manifest.CPUShares
 		delete(containers, req.id)
 		save()
-		inventory()
+		go func() {
+			// inventory() eventually calls back into the supervisor via cmk_admin -I
+			<-time.After(100 * time.Millisecond)
+			inventory()
+		}()
 		req.respChan <- true
 	} else {
 		req.respChan <- false
