@@ -195,6 +195,12 @@ func overlayConfig() {
 func Run() {
 	overlayConfig()
 	var contMap map[string]*types.Container
+	//Check if folder exists
+	_, err := os.Stat(config.ContainerFile)
+	if os.IsNotExist(err) {
+		fmt.Printf("%d %s - Directory does not exists %s\n", OK, config.CheckName, config.ContainerFile)
+		return
+	}
 	if err := serialize.RetrieveObject(config.ContainerFile, &contMap); err == nil {
 		fmt.Printf("%d %s - Able to open %s\n", OK, config.CheckName, config.ContainerFile)
 	} else {
