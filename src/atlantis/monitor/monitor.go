@@ -20,6 +20,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -235,7 +236,21 @@ func Run() {
 		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
+	exec.Command("cmk_admin -I").Output()
 	for _ = range contMap {
 		<-done
+	}
+	// Clean up inventories from containers that no longer exist
+	err = filepath.Walk(config.InventoryDir, func(path string, _ os.FileInfo, _ error) error {
+		var err error
+		split := strings.Split(path, "_")
+		cont := split[len(split)-1]
+		if _, ok := contMap[cont]; !ok {
+			err = os.Remove(path)
+		}
+		return err
+	})
+	if err != nil {
+		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error: %s", err.Error())
 	}
 }
