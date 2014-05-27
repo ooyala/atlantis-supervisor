@@ -19,6 +19,7 @@ import (
 	"github.com/jigish/go-flags"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 )
@@ -32,6 +33,7 @@ const (
 
 type Config struct {
 	ContainerFile   string `toml:"container_file"`
+	InventoryDir	string `toml:"inventory_dir"`
 	SSHIdentity     string `toml:"ssh_identity"`
 	SSHUser         string `toml:"ssh_user"`
 	CheckName       string `toml:"check_name"`
@@ -61,6 +63,7 @@ type ServiceCheck struct {
 //TODO(mchandra):Need defaults defined by constants
 var config = &Config{
 	ContainerFile:   "/etc/atlantis/supervisor/save/containers",
+	InventoryDir: 		 "/etc/atlantis/supervisor/inventory",
 	SSHIdentity:     "/opt/atlantis/supervisor/master_id_rsa",
 	SSHUser:         "root",
 	CheckName:       "ContainerMonitor",
@@ -119,6 +122,7 @@ type ContainerCheck struct {
 	User      string
 	Identity  string
 	Directory string
+	Inventory string
 	container *types.Container
 }
 
@@ -139,8 +143,23 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 }
 
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
+	if len(c.container.CustomMetadata) == 0 {
+		fmt.Printf("No contact group provided through app custom metadata!")
+		return
+	}
 	results := make(chan bool, len(scripts))
 	for _, s := range scripts {
+		serviceName := fmt.Sprintf("%s_%s", strings.Split(s, ".")[0], c.container.ID)
+		inventoryPath := path.Join(c.Inventory, serviceName)
+		_, err := os.Stat(inventoryPath)
+		if os.IsNotExist(err) {
+			_, err := exec.Command(fmt.Sprintf("cmk_admin -s %s -a %s", serviceName, c.container.CustomMetadata)).Output()
+			if err != nil {
+				fmt.Printf("Failure to update contact group for service %s. Error %s", serviceName, err.Error())
+				return
+			}
+			os.Create(inventoryPath)
+		}
 		go c.serviceCheck(s).checkWithTimeout(results, t)
 	}
 	for _ = range scripts {
@@ -213,7 +232,7 @@ func Run() {
 		if c.Host == "" {
 			c.Host = "localhost"
 		}
-		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, c}
+		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
 	for _ = range contMap {
