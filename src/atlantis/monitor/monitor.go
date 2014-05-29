@@ -144,9 +144,11 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 }
 
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
-	if len(c.container.CustomMetadata) == 0 {
-		fmt.Printf("No contact group provided through app custom metadata!")
-		return
+	contact_group := "atlantis_orphan_apps"
+	if _, ok := c.container.Manifest.Deps["cmk"]; ok {
+		if grp, ok := c.container.Manifest.Deps["cmk"]["contact_group"]); ok {
+			contact_group = grp
+		}
 	}
 	results := make(chan bool, len(scripts))
 	for _, s := range scripts {
@@ -154,7 +156,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		inventoryPath := path.Join(c.Inventory, serviceName)
 		_, err := os.Stat(inventoryPath)
 		if os.IsNotExist(err) {
-			_, err := exec.Command(fmt.Sprintf("cmk_admin -s %s -a %s", serviceName, c.container.CustomMetadata)).Output()
+			_, err := exec.Command(fmt.Sprintf("cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
 			if err != nil {
 				fmt.Printf("Failure to update contact group for service %s. Error %s", serviceName, err.Error())
 				return
