@@ -44,7 +44,6 @@ type Container struct {
 	App            string
 	Sha            string
 	Env            string
-	CustomMetadata string
 	Manifest       *Manifest
 }
 
