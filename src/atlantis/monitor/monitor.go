@@ -131,7 +131,7 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 	defer func() { done <- true }()
 	o, err := silentSshCmd(c.User, c.Identity, c.container.Host, "ls "+c.Directory, c.container.SSHPort).Output()
 	if err != nil {
-		fmt.Printf("%d %s - Error getting checks for container : %s\n", Critical, c.Name, err.Error())
+		fmt.Printf("%d %s - Error getting checks for container:\n%s\n", Critical, c.Name, err.Error())
 		return
 	}
 	fmt.Printf("%d %s - Got checks for container\n", OK, c.Name)
@@ -158,7 +158,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		if os.IsNotExist(err) {
 			_, err := exec.Command(fmt.Sprintf("cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
 			if err != nil {
-				fmt.Printf("Failure to update contact group for service %s. Error %s", serviceName, err.Error())
+				fmt.Printf("Failure to update contact group for service %s. Error:\n%s\n", serviceName, err.Error())
 				return
 			}
 			os.Create(inventoryPath)
@@ -253,6 +253,6 @@ func Run() {
 		return err
 	})
 	if err != nil {
-		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error: %s\n", err.Error())
+		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error:\n%s\n", err.Error())
 	}
 }
