@@ -131,7 +131,7 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 	defer func() { done <- true }()
 	o, err := silentSshCmd(c.User, c.Identity, c.container.Host, "ls "+c.Directory, c.container.SSHPort).Output()
 	if err != nil {
-		fmt.Printf("%d %s - Error getting checks for container:\n%s\n", Critical, c.Name, err.Error())
+		fmt.Printf("%d %s - Error getting checks for container: %s\n", Critical, c.Name, err.Error())
 		return
 	}
 	fmt.Printf("%d %s - Got checks for container\n", OK, c.Name)
@@ -143,11 +143,28 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 	c.checkAll(scripts, t)
 }
 
+type ContainerConfig struct {
+	Dependencies map[string]interface{}
+}
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 	contact_group := "atlantis_orphan_apps"
-	if _, ok := c.container.Manifest.Deps["cmk"]; ok {
-		if grp, ok := c.container.Manifest.Deps["cmk"].DataMap["contact_group"].(string); ok {
-			contact_group = grp
+	config_file := "/etc/atlantis/containers/" + c.container.ID + "/config.json"
+	var cont_config ContainerConfig
+	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
+		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
+	} else {
+		if dep, ok := cont_config.Dependencies["cmk"]; ok {
+			if cmk_dep, ok := dep.(map[string]string); ok {
+				if val, ok := cmk_dep["contact_group"]; ok {
+					contact_group = val
+				} else {
+					fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
+				}
+			} else {
+				fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
+			}
+		} else {
+			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
 		}
 	}
 	results := make(chan bool, len(scripts))
@@ -158,7 +175,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		if os.IsNotExist(err) {
 			_, err := exec.Command(fmt.Sprintf("/usr/bin/cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
 			if err != nil {
-				fmt.Printf("Failure to update contact group for service %s. Error:\n%s\n", serviceName, err.Error())
+				fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", Critical, config.CheckName, serviceName, err.Error())
 				return
 			}
 			os.Create(inventoryPath)
