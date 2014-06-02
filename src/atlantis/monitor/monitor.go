@@ -34,7 +34,7 @@ const (
 
 type Config struct {
 	ContainerFile   string `toml:"container_file"`
-	InventoryDir	string `toml:"inventory_dir"`
+	InventoryDir    string `toml:"inventory_dir"`
 	SSHIdentity     string `toml:"ssh_identity"`
 	SSHUser         string `toml:"ssh_user"`
 	CheckName       string `toml:"check_name"`
@@ -64,7 +64,7 @@ type ServiceCheck struct {
 //TODO(mchandra):Need defaults defined by constants
 var config = &Config{
 	ContainerFile:   "/etc/atlantis/supervisor/save/containers",
-	InventoryDir: 		 "/etc/atlantis/supervisor/inventory",
+	InventoryDir:    "/etc/atlantis/supervisor/inventory",
 	SSHIdentity:     "/opt/atlantis/supervisor/master_id_rsa",
 	SSHUser:         "root",
 	CheckName:       "ContainerMonitor",
@@ -146,6 +146,7 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 type ContainerConfig struct {
 	Dependencies map[string]interface{}
 }
+
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 	contact_group := "atlantis_orphan_apps"
 	config_file := "/etc/atlantis/containers/" + c.container.ID + "/config.json"
@@ -173,7 +174,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		inventoryPath := path.Join(c.Inventory, serviceName)
 		_, err := os.Stat(inventoryPath)
 		if os.IsNotExist(err) {
-			_, err := exec.Command(fmt.Sprintf("/usr/bin/cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
+			_, err := exec.Command("/usr/bin/cmk_admin", "-s", serviceName, "-a", contact_group).Output()
 			if err != nil {
 				fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, serviceName, err.Error())
 			} else {
@@ -237,13 +238,11 @@ func Run() {
 	//Check if folder exists
 	_, err := os.Stat(config.ContainerFile)
 	if os.IsNotExist(err) {
-		fmt.Printf("%d %s - Directory does not exists %s\n", OK, config.CheckName, config.ContainerFile)
+		fmt.Printf("%d %s - Container file does not exists %s. Likely no live containers present.\n", OK, config.CheckName, config.ContainerFile)
 		return
 	}
-	if err := serialize.RetrieveObject(config.ContainerFile, &contMap); err == nil {
-		fmt.Printf("%d %s - Able to open %s\n", OK, config.CheckName, config.ContainerFile)
-	} else {
-		fmt.Printf("%d %s - Could not retrieve %s: %s\n", Critical, config.CheckName, config.ContainerFile, err)
+	if err := serialize.RetrieveObject(config.ContainerFile, &contMap); err != nil {
+		fmt.Printf("%d %s - Error retrieving %s: %s\n", Critical, config.CheckName, config.ContainerFile, err)
 		return
 	}
 	done := make(chan bool, len(contMap))
@@ -255,12 +254,15 @@ func Run() {
 		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
-	exec.Command("/usr/bin/cmk_admin -I").Output()
+	exec.Command("/usr/bin/cmk_admin", "-I").Output()
 	for _ = range contMap {
 		<-done
 	}
 	// Clean up inventories from containers that no longer exist
 	err = filepath.Walk(config.InventoryDir, func(path string, _ os.FileInfo, _ error) error {
+		if path == config.InventoryDir {
+			return nil
+		}
 		var err error
 		split := strings.Split(path, "_")
 		cont := split[len(split)-1]
