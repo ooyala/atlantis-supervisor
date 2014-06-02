@@ -270,6 +270,6 @@ func Run() {
 		return err
 	})
 	if err != nil {
-		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error:\n%s\n", err.Error())
+		fmt.Printf("%d %s - Error iterating over inventory to delete obsolete markers. Error: %s\n", OK, config.CheckName, err.Error())
 	}
 }
