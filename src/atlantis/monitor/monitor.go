@@ -156,7 +156,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		inventoryPath := path.Join(c.Inventory, serviceName)
 		_, err := os.Stat(inventoryPath)
 		if os.IsNotExist(err) {
-			_, err := exec.Command(fmt.Sprintf("cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
+			_, err := exec.Command(fmt.Sprintf("/usr/bin/cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
 			if err != nil {
 				fmt.Printf("Failure to update contact group for service %s. Error:\n%s\n", serviceName, err.Error())
 				return
@@ -238,7 +238,7 @@ func Run() {
 		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
-	exec.Command("cmk_admin -I").Output()
+	exec.Command("/usr/bin/cmk_admin -I").Output()
 	for _ = range contMap {
 		<-done
 	}
