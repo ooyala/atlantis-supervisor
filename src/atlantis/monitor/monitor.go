@@ -175,10 +175,10 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 		if os.IsNotExist(err) {
 			_, err := exec.Command(fmt.Sprintf("/usr/bin/cmk_admin -s %s -a %s", serviceName, contact_group)).Output()
 			if err != nil {
-				fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", Critical, config.CheckName, serviceName, err.Error())
-				return
+				fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, serviceName, err.Error())
+			} else {
+				os.Create(inventoryPath)
 			}
-			os.Create(inventoryPath)
 		}
 		go c.serviceCheck(s).checkWithTimeout(results, t)
 	}
