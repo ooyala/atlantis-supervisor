@@ -146,7 +146,7 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 	contact_group := "atlantis_orphan_apps"
 	if _, ok := c.container.Manifest.Deps["cmk"]; ok {
-		if grp, ok := c.container.Manifest.Deps["cmk"]["contact_group"]); ok {
+		if grp, ok := c.container.Manifest.Deps["cmk"].DataMap["contact_group"].(string); ok {
 			contact_group = grp
 		}
 	}
@@ -253,6 +253,6 @@ func Run() {
 		return err
 	})
 	if err != nil {
-		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error: %s", err.Error())
+		fmt.Printf("Error iterating over inventory to delete obsolete markers. Error: %s\n", err.Error())
 	}
 }
