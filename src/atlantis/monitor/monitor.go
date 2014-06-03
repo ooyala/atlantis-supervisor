@@ -254,7 +254,6 @@ func Run() {
 		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
-	exec.Command("/usr/bin/cmk_admin", "-I").Output()
 	for _ = range contMap {
 		<-done
 	}
