@@ -41,6 +41,7 @@ type Config struct {
 	CheckName       string `toml:"check_name"`
 	CheckDir        string `toml:"check_dir"`
 	TimeoutDuration uint   `toml:"timeout_duration"`
+	Verbose         bool   `toml:"verbose"`
 }
 
 type Opts struct {
@@ -144,19 +145,23 @@ func (c *ContainerCheck) getContactGroup() {
 	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
 		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
 	} else {
-		if dep, ok := cont_config.Dependencies["cmk"]; !ok {
+		dep, ok := cont_config.Dependencies["cmk"]
+		if !ok {
 			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
 			return
 		}
-		if cmk_dep, ok := dep.(map[string]interface{}); !ok {
+		cmk_dep, ok := dep.(map[string]interface{})
+		if !ok {
 			fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
 			return
 		}
-		if val, ok := cmk_dep["contact_group"]; !ok {
+		val, ok := cmk_dep["contact_group"]
+		if !ok {
 			fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
 			return
 		}
-		if group, ok := val.(string); ok {
+		group, ok := val.(string)
+		if ok {
 			c.ContactGroup = group
 		} else {
 			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
