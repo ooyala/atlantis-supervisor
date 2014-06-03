@@ -169,8 +169,8 @@ func (c *ContainerCheck) setContactGroup(name string) {
 		c.getContactGroup()
 	}
 	inventoryPath := path.Join(c.Inventory, name)
-	if _, err := os.Stat(inventoryPath); err != nil {
-		output, err = exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).Output()
+	if _, err := os.Stat(inventoryPath); os.IsNotExist(err) {
+		output, err := exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).CombinedOutput()
 		if err != nil {
 			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, name, err.Error())
 		} else {
