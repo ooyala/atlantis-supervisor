@@ -131,6 +131,10 @@ type ContainerCheck struct {
 	container    *types.Container
 }
 
+type ContainerConfig struct {
+	Dependencies map[string]interface{}
+}
+
 func (c *ContainerCheck) getContactGroup() {
 	c.ContactGroup = "atlantis_orphan_apps"
 	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
@@ -139,9 +143,13 @@ func (c *ContainerCheck) getContactGroup() {
 		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
 	} else {
 		if dep, ok := cont_config.Dependencies["cmk"]; ok {
-			if cmk_dep, ok := dep.(map[string]string); ok {
+			if cmk_dep, ok := dep.(map[string]interface{}); ok {
 				if val, ok := cmk_dep["contact_group"]; ok {
-					c.ContactGroup = val
+					if group, ok := val.(string); ok {
+						c.ContactGroup = group	
+					} else {
+						fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
+					}
 				} else {
 					fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
 				}
@@ -184,10 +192,6 @@ func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
 		return
 	}
 	c.checkAll(scripts, t)
-}
-
-type ContainerConfig struct {
-	Dependencies map[string]interface{}
 }
 
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
