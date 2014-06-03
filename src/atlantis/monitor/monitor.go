@@ -34,6 +34,7 @@ const (
 
 type Config struct {
 	ContainerFile   string `toml:"container_file"`
+	ContainersDir   string `toml:"container_dir"`
 	InventoryDir    string `toml:"inventory_dir"`
 	SSHIdentity     string `toml:"ssh_identity"`
 	SSHUser         string `toml:"ssh_user"`
@@ -44,6 +45,7 @@ type Config struct {
 
 type Opts struct {
 	ContainerFile   string `short:"f" long:"container-file" description:"file to get contianers information from"`
+	ContainersDir   string `short:"s" long:"containers-dir" description:"directory where configs for each container live"`
 	SSHIdentity     string `short:"i" long:"ssh-identity" description:"file containing the SSH key for all containers"`
 	SSHUser         string `short:"u" long:"ssh-user" description:"user account to ssh into containers"`
 	CheckName       string `short:"n" long:"check-name" description:"service name that will appear in Nagios for the monitor"`
@@ -64,6 +66,7 @@ type ServiceCheck struct {
 //TODO(mchandra):Need defaults defined by constants
 var config = &Config{
 	ContainerFile:   "/etc/atlantis/supervisor/save/containers",
+	ContainersDir:   "/etc/atlantis/containers",
 	InventoryDir:    "/etc/atlantis/supervisor/inventory",
 	SSHIdentity:     "/opt/atlantis/supervisor/master_id_rsa",
 	SSHUser:         "root",
@@ -119,15 +122,55 @@ func (s *ServiceCheck) checkWithTimeout(results chan bool, d time.Duration) {
 }
 
 type ContainerCheck struct {
-	Name      string
-	User      string
-	Identity  string
-	Directory string
-	Inventory string
-	container *types.Container
+	Name         string
+	User         string
+	Identity     string
+	Directory    string
+	Inventory    string
+	ContactGroup string
+	container    *types.Container
+}
+
+func (c *ContainerCheck) getContactGroup() {
+	c.ContactGroup = "atlantis_orphan_apps"
+	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
+	var cont_config ContainerConfig
+	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
+		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
+	} else {
+		if dep, ok := cont_config.Dependencies["cmk"]; ok {
+			if cmk_dep, ok := dep.(map[string]string); ok {
+				if val, ok := cmk_dep["contact_group"]; ok {
+					c.ContactGroup = val
+				} else {
+					fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
+				}
+			} else {
+				fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
+			}
+		} else {
+			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
+		}
+	}
+}
+
+func (c *ContainerCheck) setContactGroup(name string) {
+	if len(c.ContactGroup) == 0 {
+		c.getContactGroup()
+	}
+	inventoryPath := path.Join(c.Inventory, name)
+	if _, err := os.Stat(inventoryPath); err != nil {
+		_, err = exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).Output()
+		if err != nil {
+			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, name, err.Error())
+		} else {
+			os.Create(inventoryPath)
+		}
+	}
 }
 
 func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
+	c.setContactGroup(c.Name)
 	defer func() { done <- true }()
 	o, err := silentSshCmd(c.User, c.Identity, c.container.Host, "ls "+c.Directory, c.container.SSHPort).Output()
 	if err != nil {
@@ -148,39 +191,10 @@ type ContainerConfig struct {
 }
 
 func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
-	contact_group := "atlantis_orphan_apps"
-	config_file := "/etc/atlantis/containers/" + c.container.ID + "/config.json"
-	var cont_config ContainerConfig
-	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
-		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
-	} else {
-		if dep, ok := cont_config.Dependencies["cmk"]; ok {
-			if cmk_dep, ok := dep.(map[string]string); ok {
-				if val, ok := cmk_dep["contact_group"]; ok {
-					contact_group = val
-				} else {
-					fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
-				}
-			} else {
-				fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
-			}
-		} else {
-			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
-		}
-	}
 	results := make(chan bool, len(scripts))
 	for _, s := range scripts {
 		serviceName := fmt.Sprintf("%s_%s", strings.Split(s, ".")[0], c.container.ID)
-		inventoryPath := path.Join(c.Inventory, serviceName)
-		_, err := os.Stat(inventoryPath)
-		if os.IsNotExist(err) {
-			_, err := exec.Command("/usr/bin/cmk_admin", "-s", serviceName, "-a", contact_group).Output()
-			if err != nil {
-				fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, serviceName, err.Error())
-			} else {
-				os.Create(inventoryPath)
-			}
-		}
+		c.setContactGroup(serviceName)
 		go c.serviceCheck(s).checkWithTimeout(results, t)
 	}
 	for _ = range scripts {
@@ -251,7 +265,7 @@ func Run() {
 		if c.Host == "" {
 			c.Host = "localhost"
 		}
-		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, c}
+		check := &ContainerCheck{config.CheckName + "_" + c.ID, config.SSHUser, config.SSHIdentity, config.CheckDir, config.InventoryDir, "", c}
 		go check.Run(time.Duration(config.TimeoutDuration)*time.Second, done)
 	}
 	for _ = range contMap {
