@@ -257,6 +257,9 @@ func overlayConfig() {
 	if opts.TimeoutDuration != 0 {
 		config.TimeoutDuration = opts.TimeoutDuration
 	}
+	if opts.Verbose {
+		config.Verbose = true
+	}
 }
 
 //file containing containers and service name to show in Nagios for the monitor itself
