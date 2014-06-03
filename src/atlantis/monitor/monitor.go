@@ -52,6 +52,7 @@ type Opts struct {
 	CheckDir        string `short:"d" long:"check-dir" description:"directory containing all the scripts for the monitoring checks"`
 	TimeoutDuration uint   `short:"t" long:"timeout-duration" description:"max number of seconds to wait for a monitoring check to finish"`
 	Config          string `short:"c" long:"config-file" default:"/etc/atlantis/supervisor/monitor.toml" description:"the config file to use"`
+	Verbose         bool   `short:"v" long:"verbose" default:false description:"print verbose debug information"`
 }
 
 type ServiceCheck struct {
@@ -73,6 +74,7 @@ var config = &Config{
 	CheckName:       "ContainerMonitor",
 	CheckDir:        "/check_mk_checks",
 	TimeoutDuration: 110,
+	Verbose:         false,
 }
 
 func (s *ServiceCheck) cmd() *exec.Cmd {
@@ -142,22 +144,22 @@ func (c *ContainerCheck) getContactGroup() {
 	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
 		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
 	} else {
-		if dep, ok := cont_config.Dependencies["cmk"]; ok {
-			if cmk_dep, ok := dep.(map[string]interface{}); ok {
-				if val, ok := cmk_dep["contact_group"]; ok {
-					if group, ok := val.(string); ok {
-						c.ContactGroup = group	
-					} else {
-						fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
-					}
-				} else {
-					fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
-				}
-			} else {
-				fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
-			}
-		} else {
+		if dep, ok := cont_config.Dependencies["cmk"]; !ok {
 			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
+			return
+		}
+		if cmk_dep, ok := dep.(map[string]interface{}); !ok {
+			fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
+			return
+		}
+		if val, ok := cmk_dep["contact_group"]; !ok {
+			fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
+			return
+		}
+		if group, ok := val.(string); ok {
+			c.ContactGroup = group
+		} else {
+			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
 		}
 	}
 }
@@ -168,11 +170,14 @@ func (c *ContainerCheck) setContactGroup(name string) {
 	}
 	inventoryPath := path.Join(c.Inventory, name)
 	if _, err := os.Stat(inventoryPath); err != nil {
-		_, err = exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).Output()
+		output, err = exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).Output()
 		if err != nil {
 			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, name, err.Error())
 		} else {
 			os.Create(inventoryPath)
+		}
+		if config.Verbose {
+			fmt.Printf("\n/usr/bin/cmk_admin -s %s -a %s\n%s\n\n", name, c.ContactGroup, output)
 		}
 	}
 }
