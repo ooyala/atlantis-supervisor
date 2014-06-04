@@ -14,6 +14,7 @@ package monitor
 import (
 	"atlantis/supervisor/containers/serialize"
 	"atlantis/supervisor/rpc/types"
+	"bytes"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
