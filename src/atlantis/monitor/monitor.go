@@ -40,19 +40,21 @@ type Config struct {
 	SSHUser         string `toml:"ssh_user"`
 	CheckName       string `toml:"check_name"`
 	CheckDir        string `toml:"check_dir"`
+	DefaultGroup    string `toml:"default_group"`
 	TimeoutDuration uint   `toml:"timeout_duration"`
 	Verbose         bool   `toml:"verbose"`
 }
 
 type Opts struct {
-	ContainerFile   string `short:"f" long:"container-file" description:"file to get contianers information from"`
-	ContainersDir   string `short:"s" long:"containers-dir" description:"directory where configs for each container live"`
+	ContainerFile   string `short:"f" long:"container-file" description:"file to get container information"`
+	ContainersDir   string `short:"s" long:"containers-dir" description:"directory containing configs for each container"`
 	SSHIdentity     string `short:"i" long:"ssh-identity" description:"file containing the SSH key for all containers"`
 	SSHUser         string `short:"u" long:"ssh-user" description:"user account to ssh into containers"`
 	CheckName       string `short:"n" long:"check-name" description:"service name that will appear in Nagios for the monitor"`
 	CheckDir        string `short:"d" long:"check-dir" description:"directory containing all the scripts for the monitoring checks"`
-	TimeoutDuration uint   `short:"t" long:"timeout-duration" description:"max number of seconds to wait for a monitoring check to finish"`
+	DefaultGroup    string `short:"g" long:"default-group" description:"default contact group to use if there is no valid group provided"`
 	Config          string `short:"c" long:"config-file" default:"/etc/atlantis/supervisor/monitor.toml" description:"the config file to use"`
+	TimeoutDuration uint   `short:"t" long:"timeout-duration" description:"max number of seconds to wait for a monitoring check to finish"`
 	Verbose         bool   `short:"v" long:"verbose" default:false description:"print verbose debug information"`
 }
 
@@ -74,6 +76,7 @@ var config = &Config{
 	SSHUser:         "root",
 	CheckName:       "ContainerMonitor",
 	CheckDir:        "/check_mk_checks",
+	DefaultGroup:    "atlantis_orphan_apps",
 	TimeoutDuration: 110,
 	Verbose:         false,
 }
@@ -138,8 +141,23 @@ type ContainerConfig struct {
 	Dependencies map[string]interface{}
 }
 
+func (c *ContainerCheck) verifyContactGroup(group string) bool {
+	output, err := exec.Command("/usr/bin/cmk_admin", "-l").Output()
+	if err != nil {
+		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Critical, config.CheckName, err.Error())
+		return false
+	}
+	for _, l := range strings.Split(string(output), "\n") {
+		cg := strings.TrimSpace(strings.TrimPrefix(l, "*"))
+		if cg == c.ContactGroup {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *ContainerCheck) getContactGroup() {
-	c.ContactGroup = "atlantis_orphan_apps"
+	c.ContactGroup = config.DefaultGroup
 	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
 	var cont_config ContainerConfig
 	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
@@ -147,7 +165,7 @@ func (c *ContainerCheck) getContactGroup() {
 	} else {
 		dep, ok := cont_config.Dependencies["cmk"]
 		if !ok {
-			fmt.Printf("%d %s - cmk dep not present, defaulting to atlantis_orphan_apps contact group!\n", OK, config.CheckName)
+			fmt.Printf("%d %s - cmk dep not present, defaulting to %s contact group!\n", OK, config.CheckName, config.DefaultGroup)
 			return
 		}
 		cmk_dep, ok := dep.(map[string]interface{})
@@ -162,7 +180,12 @@ func (c *ContainerCheck) getContactGroup() {
 		}
 		group, ok := val.(string)
 		if ok {
-			c.ContactGroup = group
+			group = strings.ToLower(group)
+			if c.verifyContactGroup(group) {
+				c.ContactGroup = group
+			} else {
+				fmt.Printf("%d %s - Specified contact_group does not exist in cmk! Falling back to default group %s.\n", Critical, config.CheckName, config.DefaultGroup)
+			}
 		} else {
 			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
 		}
@@ -242,6 +265,9 @@ func overlayConfig() {
 	if opts.ContainerFile != "" {
 		config.ContainerFile = opts.ContainerFile
 	}
+	if opts.ContainersDir != "" {
+		config.ContainersDir = opts.ContainersDir
+	}
 	if opts.SSHIdentity != "" {
 		config.SSHIdentity = opts.SSHIdentity
 	}
@@ -253,6 +279,9 @@ func overlayConfig() {
 	}
 	if opts.CheckName != "" {
 		config.CheckName = opts.CheckName
+	}
+	if opts.DefaultGroup != "" {
+		config.DefaultGroup = opts.DefaultGroup
 	}
 	if opts.TimeoutDuration != 0 {
 		config.TimeoutDuration = opts.TimeoutDuration
