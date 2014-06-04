@@ -47,8 +47,8 @@ type Config struct {
 }
 
 type Opts struct {
-	ContainerFile   string `short:"f" long:"container-file" description:"file to get contianers information from"`
-	ContainersDir   string `short:"s" long:"containers-dir" description:"directory where configs for each container live"`
+	ContainerFile   string `short:"f" long:"container-file" description:"file to get container information"`
+	ContainersDir   string `short:"s" long:"containers-dir" description:"directory containing configs for each container"`
 	SSHIdentity     string `short:"i" long:"ssh-identity" description:"file containing the SSH key for all containers"`
 	SSHUser         string `short:"u" long:"ssh-user" description:"user account to ssh into containers"`
 	CheckName       string `short:"n" long:"check-name" description:"service name that will appear in Nagios for the monitor"`
@@ -142,6 +142,17 @@ type ContainerConfig struct {
 	Dependencies map[string]interface{}
 }
 
+func (c *ContainerCheck) verifyContactGroup(group string) bool {
+	output, err := exec.Command("/usr/bin/cmk_admin", "-l").Output()
+	for _, l := range strings.Split(output, "\n") {
+		cg := strings.TrimSpace(strings.TrimPrefix(l, "*"))
+		if cg == c.ContactGroup {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *ContainerCheck) getContactGroup() {
 	c.ContactGroup = config.DefaultGroup
 	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
@@ -166,8 +177,12 @@ func (c *ContainerCheck) getContactGroup() {
 		}
 		group, ok := val.(string)
 		if ok {
-			c.ContactGroup = group
-			c.verifyContactGroup()
+			group = strings.ToLower(group)
+			if c.verifyContactGroup(group) {
+				c.ContactGroup = group
+			} else {
+				fmt.Printf("%d %s - Specified contact_group does not exist in cmk! Falling back to default group %s.\n", Critical, config.CheckName, config.DefaultGroup)
+			}
 		} else {
 			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
 		}
@@ -188,36 +203,6 @@ func (c *ContainerCheck) setContactGroup(name string) {
 		}
 		if config.Verbose {
 			fmt.Printf("\n/usr/bin/cmk_admin -s %s -a %s\n%s\n\n", name, c.ContactGroup, output)
-		}
-	}
-}
-
-func (c *ContainerCheck) verifyContactGroup() {
-	var output bytes.Buffer
-	var stderr bytes.Buffer
-	cmk := exec.Command("/usr/bin/cmk_admin", "-l")
-	egrep := exec.Command("egrep", "-x", fmt.Sprintf("[*]?\\s+(%s)", c.ContactGroup))
-	var err error
-	if egrep.Stdin, err = cmk.StdoutPipe(); err != nil {
-		fmt.Printf("%d %s - Error piping output while verifying %s. Error: %s\n", Critical, config.CheckName, c.ContactGroup, err.Error())
-		c.ContactGroup = config.DefaultGroup
-		return
-	}
-	cmk.Stderr = &stderr
-	egrep.Stdout, egrep.Stderr = &output, &stderr
-	cmds := [2]*exec.Cmd{cmk, egrep}
-	for _, cmd := range cmds {
-		if err := cmd.Start(); err != nil {
-			fmt.Printf("%d %s - Error starting %s while verifying %s. Error: %s\n", Critical, config.CheckName, cmd.Path, c.ContactGroup, err.Error())
-			c.ContactGroup = config.DefaultGroup
-			return
-		}
-	}
-	for _, cmd := range cmds {
-		if err := cmd.Wait(); err != nil {
-			fmt.Printf("%d %s - Error running %s while verfying %s. Error: %s\n", Critical, config.CheckName, cmd.Path, c.ContactGroup, err.Error())
-			c.ContactGroup = config.DefaultGroup
-			return
 		}
 	}
 }
