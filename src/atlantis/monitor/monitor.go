@@ -14,7 +14,6 @@ package monitor
 import (
 	"atlantis/supervisor/containers/serialize"
 	"atlantis/supervisor/rpc/types"
-	"bytes"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/jigish/go-flags"
@@ -144,7 +143,11 @@ type ContainerConfig struct {
 
 func (c *ContainerCheck) verifyContactGroup(group string) bool {
 	output, err := exec.Command("/usr/bin/cmk_admin", "-l").Output()
-	for _, l := range strings.Split(output, "\n") {
+	if err != nil {
+		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Critical, config.CheckName, err.Error())
+		return false
+	}
+	for _, l := range strings.Split(string(output), "\n") {
 		cg := strings.TrimSpace(strings.TrimPrefix(l, "*"))
 		if cg == c.ContactGroup {
 			return true
