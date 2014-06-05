@@ -144,7 +144,7 @@ type ContainerConfig struct {
 func (c *ContainerCheck) verifyContactGroup(group string) bool {
 	output, err := exec.Command("/usr/bin/cmk_admin", "-l").Output()
 	if err != nil {
-		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Critical, config.CheckName, err.Error())
+		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Critical, c.Name, err.Error())
 		return false
 	}
 	for _, l := range strings.Split(string(output), "\n") {
@@ -161,21 +161,21 @@ func (c *ContainerCheck) parseContactGroup() {
 	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
 	var cont_config ContainerConfig
 	if err := serialize.RetrieveObject(config_file, &cont_config); err != nil {
-		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, config.CheckName, config_file, err)
+		fmt.Printf("%d %s - Could not retrieve container config %s: %s\n", Critical, c.Name, config_file, err)
 	} else {
 		dep, ok := cont_config.Dependencies["cmk"]
 		if !ok {
-			fmt.Printf("%d %s - cmk dep not present, defaulting to %s contact group!\n", OK, config.CheckName, config.DefaultGroup)
+			fmt.Printf("%d %s - cmk dep not present, defaulting to %s contact group!\n", OK, c.Name, config.DefaultGroup)
 			return
 		}
 		cmk_dep, ok := dep.(map[string]interface{})
 		if !ok {
-			fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, config.CheckName)
+			fmt.Printf("%d %s - cmk dep present, but value is not map[string]string!\n", Critical, c.Name)
 			return
 		}
 		val, ok := cmk_dep["contact_group"]
 		if !ok {
-			fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, config.CheckName)
+			fmt.Printf("%d %s - cmk dep present, but no contact_group key!\n", Critical, c.Name)
 			return
 		}
 		group, ok := val.(string)
@@ -184,10 +184,10 @@ func (c *ContainerCheck) parseContactGroup() {
 			if c.verifyContactGroup(group) {
 				c.ContactGroup = group
 			} else {
-				fmt.Printf("%d %s - Specified contact_group does not exist in cmk! Falling back to default group %s.\n", Critical, config.CheckName, config.DefaultGroup)
+				fmt.Printf("%d %s - Specified contact_group does not exist in cmk! Falling back to default group %s.\n", Critical, c.Name, config.DefaultGroup)
 			}
 		} else {
-			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, config.CheckName)
+			fmt.Printf("%d %s - Value for contact_group key of cmk dep is not a string!\n", Critical, c.Name)
 		}
 	}
 }
@@ -200,7 +200,7 @@ func (c *ContainerCheck) updateContactGroup(name string) {
 	if _, err := os.Stat(inventoryPath); os.IsNotExist(err) {
 		output, err := exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).CombinedOutput()
 		if err != nil {
-			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, config.CheckName, name, err.Error())
+			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, c.Name, name, err.Error())
 		} else {
 			os.Create(inventoryPath)
 		}
