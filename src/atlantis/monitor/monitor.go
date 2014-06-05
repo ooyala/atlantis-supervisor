@@ -156,7 +156,7 @@ func (c *ContainerCheck) verifyContactGroup(group string) bool {
 	return false
 }
 
-func (c *ContainerCheck) getContactGroup() {
+func (c *ContainerCheck) parseContactGroup() {
 	c.ContactGroup = config.DefaultGroup
 	config_file := filepath.Join(config.ContainersDir, c.container.ID, "config.json")
 	var cont_config ContainerConfig
@@ -192,9 +192,9 @@ func (c *ContainerCheck) getContactGroup() {
 	}
 }
 
-func (c *ContainerCheck) setContactGroup(name string) {
+func (c *ContainerCheck) updateContactGroup(name string) {
 	if len(c.ContactGroup) == 0 {
-		c.getContactGroup()
+		c.parseContactGroup()
 	}
 	inventoryPath := path.Join(c.Inventory, name)
 	if _, err := os.Stat(inventoryPath); os.IsNotExist(err) {
@@ -211,7 +211,7 @@ func (c *ContainerCheck) setContactGroup(name string) {
 }
 
 func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
-	c.setContactGroup(c.Name)
+	c.updateContactGroup(c.Name)
 	defer func() { done <- true }()
 	o, err := silentSshCmd(c.User, c.Identity, c.container.Host, "ls "+c.Directory, c.container.SSHPort).Output()
 	if err != nil {
@@ -231,7 +231,7 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 	results := make(chan bool, len(scripts))
 	for _, s := range scripts {
 		serviceName := fmt.Sprintf("%s_%s", strings.Split(s, ".")[0], c.container.ID)
-		c.setContactGroup(serviceName)
+		c.updateContactGroup(serviceName)
 		go c.serviceCheck(s).checkWithTimeout(results, t)
 	}
 	for _ = range scripts {
