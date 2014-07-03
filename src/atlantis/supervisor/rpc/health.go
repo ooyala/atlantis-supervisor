@@ -47,6 +47,7 @@ func (e *HealthCheckExecutor) AllowDuringMaintenance() bool {
 func (e *HealthCheckExecutor) Execute(t *Task) error {
 	e.reply.Region = Region
 	e.reply.Zone = Zone
+	e.reply.Price = Price
 	e.reply.Containers, e.reply.CPUShares, e.reply.Memory = containers.Nums()
 	if Tracker.UnderMaintenance() {
 		e.reply.Status = StatusMaintenance

@@ -28,38 +28,40 @@ import (
 )
 
 type Config struct {
-	SaveDir                  string `toml:"save_dir"`
-	NumContainers            uint16 `toml:"num_containers"`
-	NumSecondary             uint16 `toml:"num_secondary"`
-	CPUShares                uint   `toml:"cpu_shares"`
-	MemoryLimit              uint   `toml:"memory_limit"`
-	MinPort                  uint16 `toml:"min_port"`
-	RpcAddr                  string `toml:"rpc_addr"`
-	RegistryHost             string `toml:"registry_host"`
-	ResultDuration           string `toml:"result_duration"`
-	Region                   string `toml:"region"`
-	Zone                     string `toml:"zone"`
-	MaintenanceFile          string `toml:"maintenance_file"`
-	MaintenanceCheckInterval string `toml:"maintenance_check_interval"`
-	EnableNetsec             bool   `toml:"enable_netsec"`
+	SaveDir                  string  `toml:"save_dir"`
+	NumContainers            uint16  `toml:"num_containers"`
+	NumSecondary             uint16  `toml:"num_secondary"`
+	CPUShares                uint    `toml:"cpu_shares"`
+	MemoryLimit              uint    `toml:"memory_limit"`
+	MinPort                  uint16  `toml:"min_port"`
+	RpcAddr                  string  `toml:"rpc_addr"`
+	RegistryHost             string  `toml:"registry_host"`
+	ResultDuration           string  `toml:"result_duration"`
+	Region                   string  `toml:"region"`
+	Zone                     string  `toml:"zone"`
+	MaintenanceFile          string  `toml:"maintenance_file"`
+	MaintenanceCheckInterval string  `toml:"maintenance_check_interval"`
+	EnableNetsec             bool    `toml:"enable_netsec"`
+	Price                    float64 `toml:"price"`
 }
 
 type Opts struct {
-	SaveDir                  string `long:"save" description:"the directory to save to"`
-	NumContainers            uint16 `long:"containers" description:"the # of available containers"`
-	NumSecondary             uint16 `long:"secondary" description:"the # of secondary ports"`
-	CPUShares                uint   `long:"cpu-shares" description:"the total # of CPU shares available"`
-	MemoryLimit              uint   `long:"memory-limit" description:"the total MB of memory available"`
-	MinPort                  uint16 `long:"min-port" description:"the minimum port number to use"`
-	RpcAddr                  string `long:"rpc" description:"the RPC listen addr"`
-	RegistryHost             string `long:"registry" description:"the Registry Host to talk to"`
-	ResultDuration           string `long:"result-duration" description:"How long to keep the results of an Async Command"`
-	Region                   string `long:"region" description:"the region this supervisor is in"`
-	Zone                     string `long:"zone" description:"the availability zone this supervisor is in"`
-	Config                   string `long:"config-file" default:"/etc/atlantis/supervisor/server.toml" description:"the config file to use"`
-	MaintenanceFile          string `long:"maintenance-file" description:"the maintenance file to check"`
-	MaintenanceCheckInterval string `long:"maintenance-check-interval" description:"the interval to check the maintenance file"`
-	EnableNetsec             bool   `long:"enable-netsec" description:"enable network security (iptables)"`
+	SaveDir                  string  `long:"save" description:"the directory to save to"`
+	NumContainers            uint16  `long:"containers" description:"the # of available containers"`
+	NumSecondary             uint16  `long:"secondary" description:"the # of secondary ports"`
+	CPUShares                uint    `long:"cpu-shares" description:"the total # of CPU shares available"`
+	MemoryLimit              uint    `long:"memory-limit" description:"the total MB of memory available"`
+	MinPort                  uint16  `long:"min-port" description:"the minimum port number to use"`
+	RpcAddr                  string  `long:"rpc" description:"the RPC listen addr"`
+	RegistryHost             string  `long:"registry" description:"the Registry Host to talk to"`
+	ResultDuration           string  `long:"result-duration" description:"How long to keep the results of an Async Command"`
+	Region                   string  `long:"region" description:"the region this supervisor is in"`
+	Zone                     string  `long:"zone" description:"the availability zone this supervisor is in"`
+	Config                   string  `long:"config-file" default:"/etc/atlantis/supervisor/server.toml" description:"the config file to use"`
+	MaintenanceFile          string  `long:"maintenance-file" description:"the maintenance file to check"`
+	MaintenanceCheckInterval string  `long:"maintenance-check-interval" description:"the interval to check the maintenance file"`
+	EnableNetsec             bool    `long:"enable-netsec" description:"enable network security (iptables)"`
+	Price                    float64 `long:"price"`
 }
 
 var opts = &Opts{}
@@ -99,6 +101,7 @@ func (ih *Supervisor) Run() {
 	overlayConfig()
 	Region = config.Region
 	Zone = config.Zone
+	Price = config.Price
 	log.Printf("Initializing Atlantis Supervisor [%s] [%s]", Region, Zone)
 	handleError(containers.Init(config.RegistryHost, config.SaveDir, config.NumContainers, config.NumSecondary,
 		config.MinPort, config.CPUShares, config.MemoryLimit))
