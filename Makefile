@@ -32,7 +32,7 @@ copy-key:
 
 install-deps:
 	@echo "Installing Dependencies..."
-	@rm -rf $(LIB_PATH) $(VENDOR_PATH)
+	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get github.com/jigish/go-flags
 	@GOPATH=$(VENDOR_PATH) go get github.com/BurntSushi/toml
