@@ -14,6 +14,7 @@ package constant
 var (
 	Region = "dev"
 	Zone   = "dev"
+	Price  = 0.0
 )
 
 const (
