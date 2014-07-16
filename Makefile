@@ -37,6 +37,7 @@ install-deps:
 	@GOPATH=$(VENDOR_PATH) go get github.com/jigish/go-flags
 	@GOPATH=$(VENDOR_PATH) go get github.com/BurntSushi/toml
 	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gocheck
+	@GOPATH=$(VENDOR_PATH) go get github.com/crowdmob/goamz
 	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
 	@echo "Done."
 
