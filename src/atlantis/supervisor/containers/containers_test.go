@@ -37,17 +37,9 @@ func (s *ContainersSuite) TestInit(c *gocheck.C) {
 
 	// Negative test for invalid config
 	c.Assert(Init("localhost", saveDir, uint16(1000), uint16(5), uint16(61000), 100, 1024), gocheck.ErrorMatches, "Invalid Config.+")
-	if _, err := os.Stat(saveDir); err == nil {
-		os.RemoveAll(saveDir)
-		c.Fatal("Init should not make the save directory if config is bad.")
-	}
 
 	// Negative test for invalid config
 	c.Assert(Init("localhost", saveDir, uint16(65535), uint16(65535), uint16(65535), 100, 1024), gocheck.ErrorMatches, "Invalid Config.+")
-	if _, err := os.Stat(saveDir); err == nil {
-		os.RemoveAll(saveDir)
-		c.Fatal("Init should not make the save directory if config is bad.")
-	}
 	os.RemoveAll(saveDir)
 }
 
