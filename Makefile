@@ -17,8 +17,8 @@ else
 	VENDOR_PATH := $(PROJECT_ROOT)/vendor
 endif
 ATLANTIS_PATH := $(LIB_PATH)/atlantis
-
-GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH):$(ATLANTIS_PATH)
+BUILDER_PATH := $(LIB_PATH)/atlantis-builder
+GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH):$(ATLANTIS_PATH):$(BUILDER_PATH)
 export GOPATH
 
 all: test
@@ -30,17 +30,21 @@ clean:
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-install-deps:
+$(ATLANTIS_PATH):
+	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
+	
+$(VENDOR_PATH): | $(ATLANTIS_PATH)
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get github.com/jigish/go-flags
 	@GOPATH=$(VENDOR_PATH) go get github.com/BurntSushi/toml
 	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gocheck
-	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
+	@GOPATH=$(VENDOR_PATH) go get github.com/crowdmob/goamz/aws
+	@GOPATH=$(VENDOR_PATH) go get github.com/crowdmob/goamz/s3
 	@echo "Done."
 
-test: clean copy-key
+test: clean copy-key | $(VENDOR_PATH)
 ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE

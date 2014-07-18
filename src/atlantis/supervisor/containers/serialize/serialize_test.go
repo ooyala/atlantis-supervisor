@@ -38,8 +38,8 @@ func (s *SerializeSuite) TestSerialize(c *gocheck.C) {
 	// test save/retrieve slice
 	savedSlice := []uint16{5, 4, 3, 2, 1}
 	var retrievedSlice []uint16
-	saveObject("slice", savedSlice)
-	c.Assert(retrieveObject("slice", &retrievedSlice), gocheck.Equals, true)
+	SaveObject("slice", savedSlice)
+	c.Assert(RetrieveObject("slice", &retrievedSlice), gocheck.Equals, nil)
 	c.Assert(retrievedSlice, gocheck.DeepEquals, savedSlice)
 	// test save/retrieve map
 	savedMap := map[string]*TestSerializeStruct{}
@@ -49,8 +49,8 @@ func (s *SerializeSuite) TestSerialize(c *gocheck.C) {
 		"alsoOne": "alsoYes",
 	}}
 	savedMap["two"] = &TestSerializeStruct{2, false, "two", nil, nil}
-	saveObject("map", savedMap)
-	c.Assert(retrieveObject("map", &retrievedMap), gocheck.Equals, true)
+	SaveObject("map", savedMap)
+	c.Assert(RetrieveObject("map", &retrievedMap), gocheck.Equals, nil)
 	c.Assert(retrievedMap, gocheck.DeepEquals, savedMap)
 	os.RemoveAll(SaveDir)
 }
