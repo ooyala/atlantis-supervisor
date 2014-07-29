@@ -224,6 +224,14 @@ func Teardown(c types.GenericContainer) error {
 		log.Printf("failed to teardown[kill] %s: %v", c.GetID(), err)
 		return err
 	}
+	// Make sure the container is dead before we return to avoid cmk (or other) race conditions
+	dockerLock.Lock()
+	_, err = dockerClient.WaitContainer(c.GetDockerID())
+	dockerLock.Unlock()
+	if err != nil {
+		log.Printf("failed to wait on dead container[wait] %s: %v", c.GetID(), err)
+		// Continue, since this is non-fatal and we should continue cleaning up.
+	}
 	// TODO do something with log dir
 	return RemoveConfigDir(c)
 }

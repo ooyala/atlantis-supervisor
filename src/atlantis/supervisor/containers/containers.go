@@ -199,6 +199,9 @@ func teardown(req *TeardownReq) {
 		save()
 		go func() {
 			// inventory() eventually calls back into the supervisor via cmk_admin -I
+			// Sleep to avoid this race condition.
+			// TODO(edanaher,2014-07-29): If we continue getting alerts about interfaces on torn-down containers,
+			// add additional sleep here to let tearing down complete before inventory.
 			<-time.After(100 * time.Millisecond)
 			inventory()
 		}()
