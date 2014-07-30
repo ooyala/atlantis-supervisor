@@ -315,3 +315,14 @@ func inventory() {
 		log.Println("[CMK Inventory] done:\n" + string(output))
 	}
 }
+
+func uploadLog(id string) {
+	log.Println("[Teardown Logsync] Start")
+	cmd := exec.Command("", "-I")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("[Teardown Logsync] ERROR: " + err.Error() + "\n" + string(output))
+	} else {
+		log.Println("[Teardown Logsync] done:\n" + string(output))
+	}
+}
