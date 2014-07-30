@@ -200,6 +200,7 @@ func teardown(req *TeardownReq) {
 		go func() {
 			// inventory() eventually calls back into the supervisor via cmk_admin -I
 			<-time.After(100 * time.Millisecond)
+			uploadLog(req.id)
 			inventory()
 		}()
 		req.respChan <- true
