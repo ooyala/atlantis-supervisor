@@ -319,8 +319,8 @@ func inventory() {
 
 func uploadLog(id string) {
 	log.Println("[Teardown Logsync] Start")
-	cmd := exec.Command("", "-I")
-	output, err := cmd.Output()
+	cmd := "cd /opt/atlantis/logsync && source ./conf.sh && source ./secret.sh && ./atlantis-logsync -bucket=\"$ATLANTIS_LOG_BUCKET\" -suffix=.log -region=`my-region` -once"
+	output, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
 		log.Println("[Teardown Logsync] ERROR: " + err.Error() + "\n" + string(output))
 	} else {
