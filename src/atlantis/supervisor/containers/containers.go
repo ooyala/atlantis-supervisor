@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -319,8 +320,8 @@ func inventory() {
 
 func uploadLog(id string) {
 	log.Println("[Teardown Logsync] Start")
-	cmd := "cd /opt/atlantis/logsync && source ./conf.sh && source ./secret.sh && ./atlantis-logsync -bucket=\"$ATLANTIS_LOG_BUCKET\" -suffix=.log -region=`my-region` -once"
-	output, err := exec.Command("bash", "-c", cmd).Output()
+	os.Chdir("/opt/atlantis/logsync")
+	output, err := exec.Command("./run -suffix=.log -region=`my-region` -once").Output()
 	if err != nil {
 		log.Println("[Teardown Logsync] ERROR: " + err.Error() + "\n" + string(output))
 	} else {
