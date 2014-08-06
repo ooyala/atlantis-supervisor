@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -200,6 +201,7 @@ func teardown(req *TeardownReq) {
 		go func() {
 			// inventory() eventually calls back into the supervisor via cmk_admin -I
 			<-time.After(100 * time.Millisecond)
+			uploadLog(req.id)
 			inventory()
 		}()
 		req.respChan <- true
@@ -313,5 +315,16 @@ func inventory() {
 		log.Println("[CMK Inventory] ERROR: " + err.Error() + "\n" + string(output))
 	} else {
 		log.Println("[CMK Inventory] done:\n" + string(output))
+	}
+}
+
+func uploadLog(id string) {
+	log.Println("[Teardown Logsync] Start")
+	os.Chdir("/opt/atlantis/logsync")
+	output, err := exec.Command("bash", "-c", "./run -suffix=.log -region=`my-region` -once").Output()
+	if err != nil {
+		log.Println("[Teardown Logsync] ERROR: " + err.Error() + "\n" + string(output))
+	} else {
+		log.Println("[Teardown Logsync] done:\n" + string(output))
 	}
 }
