@@ -321,7 +321,7 @@ func inventory() {
 func uploadLog(id string) {
 	log.Println("[Teardown Logsync] Start")
 	os.Chdir("/opt/atlantis/logsync")
-	output, err := exec.Command("./run -suffix=.log -region=`my-region` -once").Output()
+	output, err := exec.Command("bash", "-c", "./run -suffix=.log -region=`my-region` -once").Output()
 	if err != nil {
 		log.Println("[Teardown Logsync] ERROR: " + err.Error() + "\n" + string(output))
 	} else {
