@@ -77,7 +77,7 @@ var config = &Config{
 	CheckName:       "ContainerMonitor",
 	CheckDir:        "/check_mk_checks",
 	DefaultGroup:    "atlantis_orphan_apps",
-	TimeoutDuration: 110,
+	TimeoutDuration: 11,
 	Verbose:         false,
 }
 
