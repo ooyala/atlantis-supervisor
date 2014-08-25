@@ -99,10 +99,14 @@ func (s *ServiceCheck) errMsg(err error) string {
 
 func (s *ServiceCheck) validate(msg string) string {
 	m := strings.SplitN(msg, " ", 4)
-	if len(m) > 1 && m[1] == s.Service {
-		return msg
+	if len(m) < 2 {
+		return fmt.Sprintf("%d %s - %s\n", Critical, s.Service, "Check validation failed; no service name found in check")
 	}
-	return s.errMsg(nil)
+	if m[1] != s.Service {
+		return fmt.Sprintf("%d %s - %s\n", Critical, s.Service, "Check validation failed; found service "+m[1]+", expected "+s.Service)
+	}
+
+	return msg
 }
 
 func (s *ServiceCheck) runCheck(done chan bool) {
