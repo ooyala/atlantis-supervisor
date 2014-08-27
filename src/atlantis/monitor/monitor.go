@@ -196,7 +196,7 @@ func (c *ContainerCheck) parseContactGroup() {
 	}
 }
 
-func (c *ContainerCheck) updateContactGroup(name string) {
+func (c *ContainerCheck) updateContactGroup(name string) (updated bool) {
 	if len(c.ContactGroup) == 0 {
 		c.parseContactGroup()
 	}
@@ -207,16 +207,20 @@ func (c *ContainerCheck) updateContactGroup(name string) {
 			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, c.Name, name, err.Error())
 		} else {
 			os.Create(inventoryPath)
+			updated = true
 		}
 		if config.Verbose {
 			fmt.Printf("\n/usr/bin/cmk_admin -s %s -a %s\n%s\n\n", name, c.ContactGroup, output)
 		}
 	}
+	return
 }
 
 func (c *ContainerCheck) Run(t time.Duration, done chan bool) {
-	c.updateContactGroup(c.Name)
 	defer func() { done <- true }()
+	if c.updateContactGroup(c.Name) {
+		return
+	}
 	o, err := silentSshCmd(c.User, c.Identity, c.container.Host, "ls "+c.Directory, c.container.SSHPort).Output()
 	if err != nil {
 		fmt.Printf("%d %s - Error getting checks for container: %s\n", Critical, c.Name, err.Error())
@@ -235,8 +239,11 @@ func (c *ContainerCheck) checkAll(scripts []string, t time.Duration) {
 	results := make(chan bool, len(scripts))
 	for _, s := range scripts {
 		serviceName := fmt.Sprintf("%s_%s", strings.Split(s, ".")[0], c.container.ID)
-		c.updateContactGroup(serviceName)
-		go c.serviceCheck(s).checkWithTimeout(results, t)
+		if c.updateContactGroup(serviceName) {
+			results <- true
+		} else {
+			go c.serviceCheck(s).checkWithTimeout(results, t)
+		}
 	}
 	for _ = range scripts {
 		<-results
