@@ -196,6 +196,16 @@ func (c *ContainerCheck) parseContactGroup() {
 	}
 }
 
+func (c *ContainerCheck) reinventory(name string) {
+	output, err := exec.Command("/usr/bin/cmk_admin", "-I").CombinedOutput()
+	if err != nil {
+		fmt.Printf("%d %s - Failure to reinventory after group update for service %s. Error: %s\n", OK, c.Name, name, err.Error())
+	}
+	if config.Verbose {
+		fmt.Printf("\n/usr/bin/cmk_admin -I\n%s\n\n", output)
+	}
+}
+
 func (c *ContainerCheck) updateContactGroup(name string) (updated bool) {
 	if len(c.ContactGroup) == 0 {
 		c.parseContactGroup()
@@ -203,14 +213,15 @@ func (c *ContainerCheck) updateContactGroup(name string) (updated bool) {
 	inventoryPath := path.Join(c.Inventory, name)
 	if _, err := os.Stat(inventoryPath); os.IsNotExist(err) {
 		output, err := exec.Command("/usr/bin/cmk_admin", "-s", name, "-a", c.ContactGroup).CombinedOutput()
+		if config.Verbose {
+			fmt.Printf("\n/usr/bin/cmk_admin -s %s -a %s\n%s\n\n", name, c.ContactGroup, output)
+		}
 		if err != nil {
 			fmt.Printf("%d %s - Failure to update contact group for service %s. Error: %s\n", OK, c.Name, name, err.Error())
 		} else {
 			os.Create(inventoryPath)
 			updated = true
-		}
-		if config.Verbose {
-			fmt.Printf("\n/usr/bin/cmk_admin -s %s -a %s\n%s\n\n", name, c.ContactGroup, output)
+			c.reinventory(name)
 		}
 	}
 	return
