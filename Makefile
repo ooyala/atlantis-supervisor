@@ -41,13 +41,9 @@ clean:
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-dependency-components:
-	@git clone https://github.com/ooyala/atlantis $(ATLANTIS_PATH)
-	@git clone https://github.com/ooyala/atlantis-builder $(BUILDER_PATH)
-
 LAST_WORKING_SHA := "8fb2b14845d00ccc21d8847407d151383ba8ea2a"
 
-install-deps: dependency-components
+install-deps:
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
