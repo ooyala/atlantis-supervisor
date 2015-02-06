@@ -2,3 +2,6 @@
 
 rm -f /usr/bin/supervisor /usr/bin/monitor /usr/bin/client
 
+if [ "$1" != "upgrade" ]; then
+  rm -rf /opt/atlantis-supervisor
+fi
