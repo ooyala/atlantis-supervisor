@@ -1,0 +1,22 @@
+#!/bin/bash
+
+kill_supervisor() {
+  echo "killing supervisor..."
+  sv down atlantis-supervisor
+  rm /etc/service/atlantis-supervisor
+  i=0
+  while [ "$(pidof supervisor)" ] && [ $i -lt 5 ]; do
+    echo "waiting for supervisor to die..."
+    sleep 1
+    (( i++ ))
+  done
+  if [ "$(pidof supervisor)" ]; then
+    echo "supervisor is proving resilient. bringing out the big guns..."
+    kill -9 $(pidof supervisor)
+  fi
+  echo "supervisor killed."
+}
+
+if [ -L '/etc/service/atlantis-supervisor' ]; then
+  kill_supervisor
+fi

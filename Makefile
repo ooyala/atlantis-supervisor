@@ -1,3 +1,4 @@
+## Copyright 2014 Ooyala, Inc. All rights reserved.
 ##
 ## This file is licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 ## except in compliance with the License. You may obtain a copy of the License at
@@ -20,6 +21,7 @@ BUILDER_PATH := $(LIB_PATH)/atlantis-builder
 
 DEB_STAGING := $(PROJECT_ROOT)/staging
 PKG_BIN_DIR := $(DEB_STAGING)/opt/atlantis-supervisor/bin
+BIN_DIR := $(PROJECT_ROOT)/bin
 
 ifndef VERSION
 	VERSION := "0.1.0"
@@ -34,18 +36,13 @@ clean:
 	rm -rf bin pkg $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 	rm -f example/supervisor example/client example/monitor
 	@rm -rf $(DEB_STAGING) atlantis-supervisor_*.deb
-	rm -rf lib/*
 
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-dependency-components:
-	@git clone https://github.com/ooyala/atlantis $(ATLANTIS_PATH)
-	@git clone https://github.com/ooyala/atlantis-builder $(BUILDER_PATH)
-
 LAST_WORKING_SHA := "8fb2b14845d00ccc21d8847407d151383ba8ea2a"
 
-install-deps: dependency-components
+install-deps:
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
@@ -58,11 +55,12 @@ install-deps: dependency-components
 	@cd $(VENDOR_PATH)/src/github.com/fsouza/go-dockerclient; git reset --hard $(LAST_WORKING_SHA)
 	@echo "Done."
 
-deb: clean install-deps example
-	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
-	@mkdir -p $(PKG_BIN_DIR)
+build: install-deps example
 
-	@cp example/client $(PKG_BIN_DIR)
+deb: clean build
+	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
+	@mkdir -p $(PKG_BIN_DIR) $(BIN_DIR)
+	@cp example/client $(BIN_DIR)/supervisor-client
 	@cp example/monitor $(PKG_BIN_DIR)
 	@cp example/supervisor $(PKG_BIN_DIR)
 

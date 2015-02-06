@@ -3,7 +3,7 @@ Version: __VERSION__
 Section: base
 Priority: Optional
 Architecture: amd64
-Depends: lxc-docker (>= 0.9.0)
+Depends: lxc-docker
 Maintainer: appsplat-team@ooyala.com
 Description: Atlantis Supervisor
  This is atlantis-supervisor.
