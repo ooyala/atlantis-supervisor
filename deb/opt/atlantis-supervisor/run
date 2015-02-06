@@ -1,0 +1,4 @@
+#!/bin/bash
+
+exec ./bin/supervisor 2>&1
+echo "Supervisor revived..."
