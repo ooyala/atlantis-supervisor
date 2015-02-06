@@ -20,6 +20,7 @@ BUILDER_PATH := $(LIB_PATH)/atlantis-builder
 
 DEB_STAGING := $(PROJECT_ROOT)/staging
 PKG_BIN_DIR := $(DEB_STAGING)/opt/atlantis-supervisor/bin
+BIN_DIR := $(PROJECT_ROOT)/bin
 
 ifndef VERSION
 	VERSION := "0.1.0"
@@ -58,11 +59,12 @@ install-deps: dependency-components
 	@cd $(VENDOR_PATH)/src/github.com/fsouza/go-dockerclient; git reset --hard $(LAST_WORKING_SHA)
 	@echo "Done."
 
-deb: clean install-deps example
-	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
-	@mkdir -p $(PKG_BIN_DIR)
+build: install-deps example
 
-	@cp example/client $(PKG_BIN_DIR)
+deb: clean build
+	@cp -a $(PROJECT_ROOT)/deb $(DEB_STAGING)
+	@mkdir -p $(PKG_BIN_DIR) $(BIN_DIR)
+	@cp example/client $(BIN_DIR)/supervisor-client
 	@cp example/monitor $(PKG_BIN_DIR)
 	@cp example/supervisor $(PKG_BIN_DIR)
 
