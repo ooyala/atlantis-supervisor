@@ -36,7 +36,6 @@ clean:
 	rm -rf bin pkg $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 	rm -f example/supervisor example/client example/monitor
 	@rm -rf $(DEB_STAGING) atlantis-supervisor_*.deb
-	rm -rf lib/*
 
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
