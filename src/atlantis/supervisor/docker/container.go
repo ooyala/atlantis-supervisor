@@ -66,14 +66,14 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 	dPrimaryPort := NewDockerPort(sPrimaryPort, "tcp")
 	exposedPorts[dPrimaryPort] = struct{}{}
 	portBindings[dPrimaryPort] = []docker.PortBinding{docker.PortBinding{
-		HostIp:   "",
+		HostIP:   "",
 		HostPort: sPrimaryPort,
 	}}
 	sSSHPort := fmt.Sprintf("%d", c.SSHPort)
 	dSSHPort := NewDockerPort(sSSHPort, "tcp")
 	exposedPorts[dSSHPort] = struct{}{}
 	portBindings[dSSHPort] = []docker.PortBinding{docker.PortBinding{
-		HostIp:   "",
+		HostIP:   "",
 		HostPort: sSSHPort,
 	}}
 	for i, port := range c.SecondaryPorts {
@@ -81,7 +81,7 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 		dPort := NewDockerPort(sPort, "tcp")
 		exposedPorts[dPort] = struct{}{}
 		portBindings[dPort] = []docker.PortBinding{docker.PortBinding{
-			HostIp:   "",
+			HostIP:   "",
 			HostPort: sPort,
 		}}
 		envs = append(envs, fmt.Sprintf("SECONDARY_PORT%d=%d", i, port))
@@ -91,7 +91,7 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 	dCfg := &docker.Config{
 		Tty:          true, // allocate pseudo-tty
 		OpenStdin:    true, // keep stdin open even if we're not attached
-		CpuShares:    int64(c.Manifest.CPUShares),
+		CPUShares:    int64(c.Manifest.CPUShares),
 		Memory:       int64(c.Manifest.MemoryLimit) * int64(1024*1024), // this is in bytes
 		MemorySwap:   int64(-1),                                        // -1 turns swap off
 		ExposedPorts: exposedPorts,
