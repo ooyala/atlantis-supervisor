@@ -64,7 +64,7 @@ func removeExited() {
 			continue
 		}
 		log.Printf("[RemoveExited] remove %s (%v)", cont.ID, cont.Names)
-		err := dockerClient.RemoveContainer(cont.ID)
+		err := dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: cont.ID})
 		if err != nil {
 			log.Printf("[RemoveExited] -> error: %v", err)
 		} else {
@@ -129,10 +129,10 @@ func Deploy(c types.GenericContainer) error {
 		log.Printf("[%s] deploy with %s @ %s...", c.GetID(), c.GetApp(), c.GetSha())
 		log.Printf("[%s] docker pull %s", c.GetID(), dRepo)
 		dockerLock.Lock()
-		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo},
-			os.Stdout)
+		err := dockerClient.PullImage(docker.PullImageOptions{Repository: dRepo}, docker.AuthConfiguration{})
 		dockerLock.Unlock()
 		if err != nil {
+			log.Printf("[%s] ERROR: failed to pull %s", c.GetID(), dRepo)
 			return err
 		}
 
@@ -160,7 +160,7 @@ func Deploy(c types.GenericContainer) error {
 		// create docker container
 		dCfg, dHostCfg := DockerCfgs(c)
 		dockerLock.Lock()
-		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.GetID()}, dCfg)
+		dCont, err := dockerClient.CreateContainer(docker.CreateContainerOptions{Name: c.GetID(), Config: dCfg})
 		dockerLock.Unlock()
 		if err != nil {
 			log.Printf("[%s] ERROR: failed to create container: %s", c.GetID(), err.Error())
@@ -218,7 +218,7 @@ func Teardown(c types.GenericContainer) error {
 	}
 	defer removeExited()
 	dockerLock.Lock()
-	err := dockerClient.KillContainer(c.GetDockerID())
+	err := dockerClient.KillContainer(docker.KillContainerOptions{ID: c.GetDockerID()})
 	dockerLock.Unlock()
 	if err != nil {
 		log.Printf("failed to teardown[kill] %s: %v", c.GetID(), err)
