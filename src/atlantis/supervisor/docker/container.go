@@ -112,6 +112,7 @@ func ContainerDockerCfgs(c *types.Container) (*docker.Config, *docker.HostConfig
 			fmt.Sprintf("%s:%s", helper.HostLogDir(c.ID), ContainerLogDir),
 			fmt.Sprintf("%s:%s", helper.HostConfigDir(c.ID), atypes.ContainerConfigDir),
 		},
+		RestartPolicy: docker.AlwaysRestart(),
 
 		// We added this so that we could reference the veth after it was created. However, docker no longer
 		// uses lxc as the default driver (and neither do we) disable this configuration for now, investigate
