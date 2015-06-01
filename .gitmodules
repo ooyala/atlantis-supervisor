@@ -1,0 +1,27 @@
+[submodule "vendor/src/github.com/BurntSushi/toml"]
+	path = vendor/src/github.com/BurntSushi/toml
+	url = https://github.com/BurntSushi/toml
+[submodule "vendor/src/github.com/jigish/go-flags"]
+	path = vendor/src/github.com/jigish/go-flags
+	url = https://github.com/jigish/go-flags
+[submodule "lib/atlantis"]
+	path = lib/atlantis
+	url = ssh://git@github.com/ooyala/atlantis
+[submodule "lib/atlantis-supervisor"]
+        path = lib/atlantis-supervisor
+        url = ssh://git@github.com/ooyala/atlantis
+[submodule "vendor/src/github.com/fsouza/go-dockerclient"]
+	path = vendor/src/github.com/fsouza/go-dockerclient
+	url = ssh://git@github.com/fsouza/go-dockerclient
+[submodule "lib/atlantis-builder"]
+	path = lib/atlantis-builder
+	url = ssh://git@github.com/ooyala/atlantis-builder
+[submodule "vendor/src/github.com/crowdmob/goamz"]
+	path = vendor/src/github.com/crowdmob/goamz
+	url = https://github.com/crowdmob/goamz.git
+[submodule "vendor/src/github.com/docker/docker"]
+	path = vendor/src/github.com/docker/docker
+	url = http://github.com/docker/docker
+[submodule "vendor/src/github.com/Sirupsen/logrus"]
+	path = vendor/src/github.com/Sirupsen/logrus
+	url = http://github.com/Sirupsen/logrus
