@@ -1,0 +1,17 @@
+to install the deb:
+
+0. If this is a fresh install you probably want to mount up the data disk and make sure:
+    /opt/atlantis is symlinked to it
+    /var/lib/docker is symlinked to it
+    /var/log/atlantis is symlinked to it
+
+1. add apt repos for supervisor and docker (replace sv2 with the appropriate region suffix)
+
+sudo sh -c "echo deb [arch=amd64] http://apt.sv2/atlantis-supervisor precise main > /etc/apt/sources.list.d/atlantis-supervisor.list"
+sudo sh -c "curl https://get.docker.io/gpg | apt-key add -"
+sudo sh -c "echo deb https://get.docker.io/ubuntu docker main > /etc/apt/sources.list.d/docker.list"
+sudo apt-get update
+
+2. install atlantis-supervisor
+
+sudo apt-get install -y atlantis-supervisor

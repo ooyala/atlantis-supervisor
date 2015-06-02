@@ -28,16 +28,11 @@ DEB := $(PROJECT_ROOT)/deb
 DEB_INSTALL_DIR := $(PKG)/$(PROJECT_NAME)/opt/atlantis/supervisor
 DEB_CONFIG_DIR := $(PKG)/$(PROJECT_NAME)/etc/atlantis/supervisor
 INSTALL_DIR := /usr/local/bin/$(CLIENT_BIN_NAME)
-CLIENT_CONFIG_DIR := /etc/atlantis/supervisor
-CLIENT_CONFIG_NAME := client.default.toml
-SERVER_CONFIG_NAME := server.default.toml
-CLIENT_CONFIG_PATH := $(CLIENT_CONFIG_DIR)/$(CLIENT_CONFIG_NAME)
-DISTRO := $(shell lsb_release -cs 2>/dev/null || echo unknown)
-LAST_TAG := $(shell git describe --tags --abbrev=0 --match "[0-9]*\.[0-9]*\.[0-9]*")
-DEB_REVISION := $(shell git log --pretty=oneline ^$(LAST_TAG) HEAD |wc |awk '{print $$1;}')
-DEB_VERSION := $(LAST_TAG)-$(DEB_REVISION)
 
 
+ifndef DEB_VERSION
+	DEB_VERSION := "0.1.0"
+endif
 
 ATLANTIS_PATH := $(LIB_PATH)/atlantis
 BUILDER_PATH := $(LIB_PATH)/atlantis-builder
@@ -65,9 +60,9 @@ build: init copy-key
 deb: build
 	@cp -a $(DEB) $(PKG)
 	@mkdir -p $(DEB_INSTALL_DIR)
-##@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa $(DEB_INSTALL_DIR)/master_id_rsa
-##@chmod 600 $(DEB_INSTALL_DIR)/master_id_rsa
-##@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa.pub $(DEB_INSTALL_DIR)/master_id_rsa.pub
+	@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa $(DEB_INSTALL_DIR)/master_id_rsa
+	@chmod 600 $(DEB_INSTALL_DIR)/master_id_rsa
+	@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa.pub $(DEB_INSTALL_DIR)/master_id_rsa.pub
 	@cp -a bin $(DEB_INSTALL_DIR)/
 	@mkdir -p $(DEB_CONFIG_DIR)
 	@perl -p -i -e "s/__VERSION__/$(DEB_VERSION)/g" $(PKG)/$(PROJECT_NAME)/DEBIAN/control
