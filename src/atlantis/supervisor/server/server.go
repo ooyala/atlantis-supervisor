@@ -104,7 +104,7 @@ func (ih *Supervisor) Run() {
 	Price = config.Price
 	log.Printf("Initializing Atlantis Supervisor [%s] [%s]", Region, Zone)
 	handleError(containers.Init(config.RegistryHost, config.SaveDir, config.NumContainers, config.NumSecondary,
-		config.MinPort, config.CPUShares, config.MemoryLimit))
+		config.MinPort, config.CPUShares, config.MemoryLimit, config.EnableNetsec))
 	handleError(rpc.Init(config.RpcAddr))
 	maintenanceCheckInterval, err := time.ParseDuration(config.MaintenanceCheckInterval)
 	if err != nil {
