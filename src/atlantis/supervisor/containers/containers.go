@@ -82,15 +82,18 @@ var (
 )
 
 // Initialize everything needed to use containers
-func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort uint16, cpu, memory uint) error {
+func Init(registry, saveDir string, numContainers, numSecondaryPorts, minPort uint16, cpu, memory uint, enableNetsec bool) error {
 	if err := serialize.Init(saveDir); err != nil {
 		return err
 	}
+	
 	NumContainers = numContainers
 	NumSecondaryPorts = numSecondaryPorts
 	MinPort = minPort
 	CPUShares = cpu
 	MemoryLimit = memory
+	EnableNetsec = enableNetsec
+	
 	if uint64(MinPort)+(uint64(NumSecondaryPorts)+2)*uint64(NumContainers)-1 > 65535 {
 		return errors.New("Invalid Config. MinPort+(NumSecondaryPorts+2)*NumContainers-1 > 65535")
 	}
