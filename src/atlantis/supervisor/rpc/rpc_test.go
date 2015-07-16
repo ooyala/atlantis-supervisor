@@ -35,7 +35,7 @@ func (s *RpcSuite) TestDeploy(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024)
+	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024, false)
 	ih := new(Supervisor)
 	arg := SupervisorDeployArg{}
 	var reply SupervisorDeployReply
@@ -73,7 +73,7 @@ func (s *RpcSuite) TestTeardown(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	containers.Init("localhost", saveDir, 10, 2, 61000, 100, 1024)
+	containers.Init("localhost", saveDir, 10, 2, 61000, 100, 1024, false)
 	ih := new(Supervisor)
 	// deploy a container
 	var dreply SupervisorDeployReply
@@ -141,7 +141,7 @@ func (s *RpcSuite) TestHealthCheck(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024)
+	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024, false)
 	ih := new(Supervisor)
 	// check health
 	arg := SupervisorHealthCheckArg{}
@@ -194,7 +194,7 @@ func (s *RpcSuite) TestList(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024)
+	containers.Init("localhost", saveDir, 2, 2, 61000, 100, 1024, false)
 	ih := new(Supervisor)
 	// list
 	arg := SupervisorListArg{}

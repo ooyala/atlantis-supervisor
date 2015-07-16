@@ -28,7 +28,7 @@ func (s *ContainersSuite) TestInit(c *gocheck.C) {
 	// Positive test
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	c.Assert(Init("localhost", saveDir, uint16(100), uint16(5), uint16(61000), 100, 1024), gocheck.IsNil)
+	c.Assert(Init("localhost", saveDir, uint16(100), uint16(5), uint16(61000), 100, 1024, false), gocheck.IsNil)
 	if _, err := os.Stat(saveDir); err != nil {
 		c.Fatal("Init did not make the save directory")
 	}
@@ -36,17 +36,17 @@ func (s *ContainersSuite) TestInit(c *gocheck.C) {
 	dieChan <- true
 
 	// Negative test for invalid config
-	c.Assert(Init("localhost", saveDir, uint16(1000), uint16(5), uint16(61000), 100, 1024), gocheck.ErrorMatches, "Invalid Config.+")
+	c.Assert(Init("localhost", saveDir, uint16(1000), uint16(5), uint16(61000), 100, 1024, false), gocheck.ErrorMatches, "Invalid Config.+")
 
 	// Negative test for invalid config
-	c.Assert(Init("localhost", saveDir, uint16(65535), uint16(65535), uint16(65535), 100, 1024), gocheck.ErrorMatches, "Invalid Config.+")
+	c.Assert(Init("localhost", saveDir, uint16(65535), uint16(65535), uint16(65535), 100, 1024, false), gocheck.ErrorMatches, "Invalid Config.+")
 	os.RemoveAll(saveDir)
 }
 
 func (s *ContainersSuite) TestReserve(c *gocheck.C) {
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024), gocheck.IsNil)
+	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024, false), gocheck.IsNil)
 	// First reserve should work
 	container, err := Reserve("first", &types.Manifest{CPUShares: 50, MemoryLimit: 512})
 	c.Assert(err, gocheck.IsNil)
@@ -87,7 +87,7 @@ func (s *ContainersSuite) TestTeardown(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024), gocheck.IsNil)
+	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024, false), gocheck.IsNil)
 	// First reserve should work
 	_, err := Reserve("first", &types.Manifest{CPUShares: 1, MemoryLimit: 1})
 	c.Assert(err, gocheck.IsNil)
@@ -107,7 +107,7 @@ func (s *ContainersSuite) TestList(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024), gocheck.IsNil)
+	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024, false), gocheck.IsNil)
 	// reserve first and list
 	first, err := Reserve("first", &types.Manifest{CPUShares: 1, MemoryLimit: 1})
 	c.Assert(err, gocheck.IsNil)
@@ -134,7 +134,7 @@ func (s *ContainersSuite) TestNums(c *gocheck.C) {
 	os.Setenv("SUPERVISOR_PRETEND", "true")
 	saveDir := "save_test"
 	os.RemoveAll(saveDir)
-	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024), gocheck.IsNil)
+	c.Assert(Init("localhost", saveDir, uint16(2), uint16(2), uint16(61000), 100, 1024, false), gocheck.IsNil)
 	// reserve first and list
 	_, err := Reserve("first", &types.Manifest{CPUShares: 1, MemoryLimit: 100})
 	c.Assert(err, gocheck.IsNil)
