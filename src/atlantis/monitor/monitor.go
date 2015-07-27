@@ -148,7 +148,7 @@ type ContainerConfig struct {
 func (c *ContainerCheck) verifyContactGroup(group string) bool {
 	output, err := exec.Command("/usr/bin/cmk_admin", "-l").Output()
 	if err != nil {
-		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Critical, c.Name, err.Error())
+		fmt.Printf("%d %s - Error listing existing contact_groups for validation, please try again later! Error: %s\n", Warning, c.Name, err.Error())
 		return false
 	}
 	for _, l := range strings.Split(string(output), "\n") {
