@@ -17,6 +17,7 @@ import (
 	. "atlantis/supervisor/rpc/types"
 	"launchpad.net/gocheck"
 	"os"
+	"sort"
 	"testing"
 )
 
@@ -132,6 +133,8 @@ func (s *RpcSuite) TestTeardown(c *gocheck.C) {
 	reply = SupervisorTeardownReply{}
 	c.Assert(ih.Teardown(arg, &reply), gocheck.IsNil)
 	c.Assert(reply.Status, gocheck.Equals, StatusOk) // gocheck doesn't have a NotEquals?!
+	// sort container ids before Assert
+	sort.Strings(reply.ContainerIDs)
 	c.Assert(reply.ContainerIDs, gocheck.DeepEquals, []string{"theContainerID3", "theContainerID4",
 		"theContainerID5"})
 	os.RemoveAll(saveDir)
