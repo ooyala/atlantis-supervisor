@@ -1,0 +1,8 @@
+gom 'github.com/adjust/gocheck', :commit => 'fbc315b36e0e7dc95023e96b43af5d8de58bc6fb'
+gom 'github.com/BurntSushi/toml', :commit => 'c2e6da3db91e5bf414c5e970e534bf0c7ea9fed2'
+gom 'github.com/crowdmob/goamz', :commit => '3a06871fe9fc0281ca90f3a7d97258d042ed64c0'
+gom 'github.com/docker/docker', :commit => '197a3f0a98bbedc1253df3fae42837769871beb1'
+gom 'github.com/fsouza/go-dockerclient', :commit => 'ddb122d10f547ee6cfc4ea7debff407d80abdabc'
+gom 'github.com/jigish/go-flags', :commit => '5388f80a7e8a41e4c761fed27e5fcfe2af1196ac' 
+gom 'github.com/Sirupsen/logrus', :commit => '6ba91e24c498b49d0363c723e9e2ab2b5b8fd012'
+

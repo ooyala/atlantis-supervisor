@@ -21,6 +21,10 @@ BUILDER_PATH := $(LIB_PATH)/atlantis-builder
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH):$(ATLANTIS_PATH):$(BUILDER_PATH)
 export GOPATH
 
+GOM := $(VENDOR_PATH)/bin/gom
+GOM_VENDOR_NAME := vendor
+export GOM_VENDOR_NAME
+
 all: test
 
 clean:
@@ -32,16 +36,13 @@ copy-key:
 
 $(ATLANTIS_PATH):
 	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
-	
+
 $(VENDOR_PATH): | $(ATLANTIS_PATH)
 	@echo "Installing Dependencies..."
 	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
-	@GOPATH=$(VENDOR_PATH) go get github.com/jigish/go-flags
-	@GOPATH=$(VENDOR_PATH) go get github.com/BurntSushi/toml
-	@GOPATH=$(VENDOR_PATH) go get launchpad.net/gocheck
-	@GOPATH=$(VENDOR_PATH) go get github.com/crowdmob/goamz/aws
-	@GOPATH=$(VENDOR_PATH) go get github.com/crowdmob/goamz/s3
+	@GOPATH=$(VENDOR_PATH) go get github.com/mattn/gom
+	$(GOM) install
 	@echo "Done."
 
 test: clean copy-key | $(VENDOR_PATH)

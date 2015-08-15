@@ -13,7 +13,7 @@ package containers
 
 import (
 	"atlantis/supervisor/rpc/types"
-	"launchpad.net/gocheck"
+	"github.com/adjust/gocheck"
 	"os"
 	"testing"
 )
