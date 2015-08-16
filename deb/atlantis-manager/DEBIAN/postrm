@@ -1,5 +1,0 @@
-#!/bin/bash
-
-if [ "$1" != "upgrade" ]; then
-  rm -rf /opt/atlantis/manager
-fi

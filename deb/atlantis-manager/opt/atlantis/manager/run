@@ -1,7 +1,0 @@
-#!/bin/bash
-
-if [ -f /etc/atlantis/secret.sh ]; then
-  . /etc/atlantis/secret.sh
-fi
-
-exec ./bin/atlantis-managerd 2>&1

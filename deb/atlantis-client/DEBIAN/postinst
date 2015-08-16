@@ -1,3 +1,0 @@
-#!/bin/bash
-
-echo "Please add /opt/atlantis/manager/bin to your PATH"

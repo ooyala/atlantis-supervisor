@@ -1,7 +1,0 @@
-/etc/atlantis/manager/client.default.toml
-/etc/atlantis/manager/client.localhost.toml
-/etc/atlantis/manager/client.sv2.toml
-/etc/atlantis/manager/client.sjc1-s.toml
-/etc/atlantis/manager/client.us-east-1.toml
-/etc/atlantis/manager/client.ap-northeast-1-vpc.toml
-/etc/atlantis/manager/client.syd1.toml

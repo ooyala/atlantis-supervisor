@@ -16,6 +16,21 @@ else
 	LIB_PATH := $(PROJECT_ROOT)/lib
 	VENDOR_PATH := $(PROJECT_ROOT)/vendor
 endif
+
+PROJECT_NAME := $(shell pwd | xargs basename)
+CLIENT_BIN_NAME := $(PROJECT_NAME)
+SERVER_BIN_NAME := $(PROJECT_NAME)d
+
+PKG := $(PROJECT_ROOT)/pkg
+DEB := $(PROJECT_ROOT)/deb
+DEB_INSTALL_DIR := $(PKG)/$(PROJECT_NAME)/opt/atlantis/supervisor
+DEB_CONFIG_DIR := $(PKG)/$(PROJECT_NAME)/etc/atlantis/supervisor
+INSTALL_DIR := /usr/local/bin/$(CLIENT_BIN_NAME)
+
+ifndef DEB_VERSION
+	DEB_VERSION := "0.1.0"
+endif
+
 ATLANTIS_PATH := $(LIB_PATH)/atlantis
 BUILDER_PATH := $(LIB_PATH)/atlantis-builder
 GOPATH := $(PROJECT_ROOT):$(VENDOR_PATH):$(ATLANTIS_PATH):$(BUILDER_PATH)
@@ -30,20 +45,40 @@ all: test
 clean:
 	rm -rf bin pkg $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 	rm -f example/supervisor example/client example/monitor
+	rm -rf $(VENDOR_PATH) $(ATLANTIS_PATH)
 
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
 $(ATLANTIS_PATH):
-	@git clone ssh://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
+	@git clone https://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
+$(BUILDER_PATH):
+	@git clone https://git@github.com/ooyala/atlantis-builder $(BUILDER_PATH)
 
-$(VENDOR_PATH): | $(ATLANTIS_PATH)
+$(VENDOR_PATH): 
 	@echo "Installing Dependencies..."
-	@rm -rf $(VENDOR_PATH)
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get github.com/mattn/gom
 	$(GOM) install
 	@echo "Done."
+
+init: clean $(ATLANTIS_PATH) $(BUILDER_PATH) $(VENDOR_PATH) copy-key
+	@mkdir bin
+
+build: init
+	@go build -o bin/$(SERVER_BIN_NAME) example/supervisor.go
+	@go build -o bin/$(CLIENT_BIN_NAME) example/client.go
+
+deb: build
+	@cp -a $(DEB) $(PKG)
+	@mkdir -p $(DEB_INSTALL_DIR)
+	@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa $(DEB_INSTALL_DIR)/master_id_rsa
+	@chmod 600 $(DEB_INSTALL_DIR)/master_id_rsa
+	@cp $(ATLANTIS_SECRET_DIR)/supervisor_master_id_rsa.pub $(DEB_INSTALL_DIR)/master_id_rsa.pub
+	@cp -a bin $(DEB_INSTALL_DIR)/
+	@mkdir -p $(DEB_CONFIG_DIR)
+	@perl -p -i -e "s/__VERSION__/$(DEB_VERSION)/g" $(PKG)/$(PROJECT_NAME)/DEBIAN/control
+	@cd $(PKG) && dpkg --build $(PROJECT_NAME) ../pkg
 
 test: clean copy-key | $(VENDOR_PATH)
 ifdef TEST_PACKAGE
