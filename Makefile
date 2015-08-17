@@ -45,24 +45,19 @@ all: test
 clean:
 	rm -rf bin pkg $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 	rm -f example/supervisor example/client example/monitor
-	rm -rf $(VENDOR_PATH) $(ATLANTIS_PATH)
+	rm -rf $(VENDOR_PATH) $(LIB_PATH)
 
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-$(ATLANTIS_PATH):
-	@git clone https://git@github.com/ooyala/atlantis $(ATLANTIS_PATH)
-$(BUILDER_PATH):
-	@git clone https://git@github.com/ooyala/atlantis-builder $(BUILDER_PATH)
-
 $(VENDOR_PATH): 
 	@echo "Installing Dependencies..."
 	@mkdir -p $(VENDOR_PATH) || exit 2
-	@GOPATH=$(VENDOR_PATH) go get github.com/mattn/gom
+	@GOPATH=$(VENDOR_PATH) go get github.com/ghao-ooyala/gom
 	$(GOM) install
 	@echo "Done."
 
-init: clean $(ATLANTIS_PATH) $(BUILDER_PATH) $(VENDOR_PATH) copy-key
+init: clean $(VENDOR_PATH) copy-key
 	@mkdir bin
 
 build: init
