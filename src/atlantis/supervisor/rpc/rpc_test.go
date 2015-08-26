@@ -15,7 +15,7 @@ import (
 	. "atlantis/common"
 	"atlantis/supervisor/containers"
 	. "atlantis/supervisor/rpc/types"
-	"launchpad.net/gocheck"
+	"github.com/adjust/gocheck"
 	"os"
 	"testing"
 )

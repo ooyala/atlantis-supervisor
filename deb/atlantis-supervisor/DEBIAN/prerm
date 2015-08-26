@@ -1,0 +1,30 @@
+#!/bin/bash
+
+kill_supervisor() {
+  echo "triggering maintenance mode"
+  touch /etc/maint
+  sleep 5 # wait for maintenance mode to trigger
+
+  echo "gracefully killing supervisor (will wait up to 10 minutes)..."
+  sv down atlantis-supervisor
+  rm /etc/service/atlantis-supervisor
+  i=0
+  while [ "$(pidof atlantis-supervisord)" ] && [ $i -lt 120 ]; do # wait up to 10 minutes
+    echo "waiting for supervisor to die..."
+    sleep 5
+    (( i++ ))
+  done
+  if [ "$(pidof atlantis-supervisord)" ]; then
+    echo "supervisor is proving resilient. bringing out the big guns..."
+    kill -9 $(pidof atlantis-supervisord)
+  fi
+  echo "supervisor killed."
+}
+
+if [ "$1" != "upgrade" ]; then
+  /opt/atlantis/supervisor/bin/atlantis-supervisor teardown -a
+fi
+if [ -L '/etc/service/atlantis-supervisor' ]; then
+  kill_supervisor
+  rm -f /etc/atlantis/supervisor/maint # now that supervisor is dead, unmaintenanceify
+fi

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo "reviving supervisor..."
+cd /etc/service
+ln -s /opt/atlantis/supervisor atlantis-supervisor
+i=0
+while [ -z "$(pidof atlantis-supervisord)" ] && [ $i -lt 10 ]; do
+  echo "waiting for supervisor to revive..."
+  sleep 1
+  if [ -p /opt/atlantis/supervisor/supervise/ok ]; then
+    sv up atlantis-supervisor
+  fi
+  (( i++ ))
+done
+if [ $i -eq 10 ]; then
+  echo "could not revive supervisor."
+  exit 1
+fi
+rm -f /etc/atlantis/supervisor/maint # now that we're good, unmaintenanceify
+echo "supervisor revived."
+

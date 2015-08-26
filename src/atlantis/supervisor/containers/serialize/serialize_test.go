@@ -12,7 +12,7 @@
 package serialize
 
 import (
-	"launchpad.net/gocheck"
+	"github.com/adjust/gocheck"
 	"os"
 	"testing"
 )
