@@ -118,10 +118,7 @@ func (s *SyncT) loadDest() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if data.IsTruncated == true {
-		msg := "Results from S3 truncated and I don't yet know how to download next set of results, so we will exit to avoid invalidating results."
-		return nil, errors.New(msg)
-	}
+
 	for i := range data.Contents {
 		md5sum := strings.Trim(data.Contents[i].ETag, "\"")
 		path := relativePath(s.Prefix, data.Contents[i].Key)
