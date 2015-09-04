@@ -5,9 +5,9 @@ import (
 	. "atlantis/supervisor/constant"
 	. "atlantis/supervisor/rpc/types"
 	. "atlantis/supervisor/client"
-	"net/http"
-
 	"fmt"
+	"log"
+	"net/http"
 	"time"
 )
 
@@ -20,14 +20,12 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	err := rpcClient.CallWithTimeout("HealthCheck", arg, &reply, 5)
 
 	if err != nil {
-		// not really sure what to do with error
-
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
+		log.Println("ERROR: ", err)
+		fmt.Fprintf(w, "CRITICAL")
 		return
 	}
 
-	w.Write([]byte(reply.Status))
+	fmt.Fprintf(w, reply.Status)
 
 }
 
@@ -36,8 +34,7 @@ func Run(port uint16) {
 	http.HandleFunc("/healthz", healthzHandler)
 
 	for {
-		http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), nil)
-		// logger.Errorf("[status server] %s", server.ListenAndServe())
+		log.Println("[healthz server] %s", http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), nil))
 		time.Sleep(1 * time.Second)
 	}
 }
