@@ -2,9 +2,9 @@ package healthz
 
 import (
 	. "atlantis/common"
+	. "atlantis/supervisor/client"
 	. "atlantis/supervisor/constant"
 	. "atlantis/supervisor/rpc/types"
-	. "atlantis/supervisor/client"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,7 +28,6 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, reply.Status)
 
 }
-
 
 func Run(port uint16) {
 	http.HandleFunc("/healthz", healthzHandler)
