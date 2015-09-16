@@ -16,6 +16,7 @@ import (
 	"atlantis/crypto"
 	. "atlantis/supervisor/constant"
 	"atlantis/supervisor/containers"
+	"atlantis/supervisor/healthz"
 	"atlantis/supervisor/rpc"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -110,6 +111,7 @@ func (ih *Supervisor) Run() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	go healthz.Run(8080)
 	go signalListener()
 	MaintenanceChecker(config.MaintenanceFile, maintenanceCheckInterval)
 	rpc.Listen()
