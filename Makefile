@@ -50,7 +50,7 @@ clean:
 copy-key:
 	@cp $(ATLANTIS_SECRET_DIR)/atlantis_key.go $(ATLANTIS_PATH)/src/atlantis/crypto/key.go
 
-$(VENDOR_PATH): 
+$(VENDOR_PATH):
 	@echo "Installing Dependencies..."
 	@mkdir -p $(VENDOR_PATH) || exit 2
 	@GOPATH=$(VENDOR_PATH) go get github.com/ghao-ooyala/gom
@@ -75,12 +75,12 @@ deb: build
 	@perl -p -i -e "s/__VERSION__/$(DEB_VERSION)/g" $(PKG)/$(PROJECT_NAME)/DEBIAN/control
 	@cd $(PKG) && dpkg --build $(PROJECT_NAME) ../pkg
 
-test: clean copy-key | $(VENDOR_PATH)
+test: clean $(VENDOR_PATH) copy-key
 ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE
 else
-	@for p in `find ./src -type f -name "*.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
+	@for p in `find ./src -type f -name "*_test.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
 		[ "$$p" == 'atlantis/proxy' ] && continue; \
 		echo "Testing $$p..."; \
 		go test $$p || exit 1; \
