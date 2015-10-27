@@ -135,7 +135,8 @@ func (s *RpcSuite) TestTeardown(c *gocheck.C) {
 	c.Assert(reply.Status, gocheck.Equals, StatusOk) // gocheck doesn't have a NotEquals?!
 	expectedContainerIDs := []string{"theContainerID3", "theContainerID4", "theContainerID5"}
 	// sort container ids before Assert
-	c.Assert(sort.Strings(reply.ContainerIDs), gocheck.DeepEquals, sort.Strings(expectedContainerIDs))
+	sort.Strings(reply.ContainerIDs)
+	c.Assert(reply.ContainerIDs, gocheck.DeepEquals, expectedContainerIDs)
 	os.RemoveAll(saveDir)
 }
 
