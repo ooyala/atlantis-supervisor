@@ -97,7 +97,7 @@ example: copy-key
 fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
 
-lint:
+lint: $(VENDOR_PATH)
 	$(VENDOR_PATH)/bin/golint src
 
 syntax:
