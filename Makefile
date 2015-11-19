@@ -75,7 +75,7 @@ deb: build
 	@perl -p -i -e "s/__VERSION__/$(DEB_VERSION)/g" $(PKG)/$(PROJECT_NAME)/DEBIAN/control
 	@cd $(PKG) && dpkg --build $(PROJECT_NAME) ../pkg
 
-test: clean $(VENDOR_PATH) copy-key
+test: $(VENDOR_PATH) copy-key
 ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE
@@ -99,4 +99,7 @@ fmt:
 	@find src -name \*.go -exec gofmt -l -w {} \;
 
 lint:
-	$(VENDOR_PATH)/bin/golint 
+	$(VENDOR_PATH)/bin/golint src
+
+syntax:
+	go tool vet src 
