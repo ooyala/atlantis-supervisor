@@ -80,8 +80,7 @@ ifdef TEST_PACKAGE
 	@echo "Testing $$TEST_PACKAGE..."
 	@go test $$TEST_PACKAGE $$VERBOSE $$RACE
 else
-	@for p in `find ./src -type f -name "*_test.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u`; do \
-		[ "$$p" == 'atlantis/proxy' ] && continue; \
+	@for p in `find ./src -type f -name "*_test.go" |sed 's-\./src/\(.*\)/.*-\1-' |sort -u | grep -v 'atlantis/proxy'`; do \
 		echo "Testing $$p..."; \
 		go test $$p || exit 1; \
 	done
